@@ -1,0 +1,19 @@
+# data files
+data/
+
+# csv files
+*.csv
+
+# machine learning models
+*.pkl
+
+# jupyter checkpoints
+.ipynb_checkpoints/
+
+# python cache
+__pycache__/
+*.pyc
+
+# large archives
+*.zip
+*.tar
