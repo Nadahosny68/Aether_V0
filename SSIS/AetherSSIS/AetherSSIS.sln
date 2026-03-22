@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.37027.9 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{C9674DCB-5085-4A16-B785-4C70DD1589BD}") = "AetherSSIS", "AetherSSIS.dtproj", "{D2D14A23-AB1B-05F9-18C4-755B5ABA83BB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Development|Default = Development|Default
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D2D14A23-AB1B-05F9-18C4-755B5ABA83BB}.Development|Default.ActiveCfg = Development
+		{D2D14A23-AB1B-05F9-18C4-755B5ABA83BB}.Development|Default.Build.0 = Development
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {681F2C66-6D23-4E71-B0A3-CAF0A3B92972}
+	EndGlobalSection
+EndGlobal

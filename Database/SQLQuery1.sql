@@ -42,4 +42,7 @@ CREATE TABLE RiskPredictions (
 );
 
 
-SELECT TOP 20 * FROM RiskPredictions;
+SELECT TOP 200 * FROM RiskPredictions;
+
+SELECT  * FROM RiskPredictions
+where predicted_risk = 'low';

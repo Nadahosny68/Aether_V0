@@ -1,9 +1,11 @@
 import pandas as pd
 import os
 
+
 # Paths to raw data
-weather_path = r"D:\Aether\Aether_V0\data\raw\weather_data.csv"
-pollution_path = r"D:\Aether\Aether_V0\data\raw\air_pollution_data.csv"
+weather_path = r"D:\Aether\Aether_V0\data\raw\cairo_weather_historical.csv"
+pollution_path = r"D:\Aether\Aether_V0\data\raw\cairo_airquality_historical.csv"
+
 
 print("Loading datasets...")
 
@@ -29,3 +31,7 @@ print(weather_df.head())
 
 print("\nPreview Pollution Data:")
 print(pollution_df.head())
+
+
+
+

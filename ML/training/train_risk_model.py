@@ -1,54 +1,31 @@
 import pandas as pd
+import pyodbc
+import joblib
+import os
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
-import pyodbc
-import joblib
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 print("Loading data from SQL...")
 
 conn = pyodbc.connect(
     "DRIVER={SQL Server};"
     "SERVER=DESKTOP-Q5KEU1E;"
-    "DATABASE=AetherDW;"
+    "DATABASE=AetherDW_V0;"
     "Trusted_Connection=yes;"
 )
 
-weather = pd.read_sql("SELECT * FROM WeatherMetrics", conn)
-pollution = pd.read_sql("SELECT * FROM PollutionMetrics", conn)
-
+# Read directly from EnvironmentalFeatures — no merge needed
+# health_category already exists from feature engineering
+df = pd.read_sql("SELECT * FROM EnvironmentalFeatures", conn)
 conn.close()
 
-# -----------------------------
-# Merge datasets
-# -----------------------------
+print(f"  Rows loaded: {len(df)}")
 
-data = pd.merge(weather, pollution, on="date")
-
-# -----------------------------
-# Create Risk Label
-# -----------------------------
-
-def classify_risk(row):
-    
-    if row["aqi"] > 150 or row["pm25"] > 100:
-        return "High"
-    
-    elif row["aqi"] > 80 or row["pm25"] > 50:
-        return "Moderate"
-    
-    else:
-        return "Low"
-
-data["risk_level"] = data.apply(classify_risk, axis=1)
-
-print("Risk labels created.")
-
-# -----------------------------
-# Prepare features
-# -----------------------------
-
-features = [
+# ── Features ───────────────────────────────────────────────────────────────
+FEATURES = [
     "temperature",
     "humidity",
     "wind",
@@ -56,43 +33,64 @@ features = [
     "pm25",
     "pm10",
     "aqi",
-    "pollution_level"
+    "pollution_level",
+    "respiratory_stress",
+    "uv_risk",
+    "pressure",
+    "ozone",
+    "nitrogen_dioxide",
 ]
 
-X = data[features]
-y = data["risk_level"]
+TARGET = "health_category"
 
-# -----------------------------
-# Train/Test Split
-# -----------------------------
+# Keep only rows where all features and target are present
+df = df.dropna(subset=FEATURES + [TARGET])
+print(f"  Rows after dropping nulls: {len(df)}")
 
+# ── Class distribution ─────────────────────────────────────────────────────
+print(f"\n  Health category distribution:")
+print(df[TARGET].value_counts().to_string())
+
+X = df[FEATURES]
+y = df[TARGET]
+
+# ── Train/Test Split ───────────────────────────────────────────────────────
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
+    X, y, test_size=0.2, random_state=42, stratify=y
 )
 
-# -----------------------------
-# Train Model
-# -----------------------------
+print(f"\n  Training rows: {len(X_train)}")
+print(f"  Testing rows:  {len(X_test)}")
 
-model = RandomForestClassifier(n_estimators=100)
+# ── Train Model ────────────────────────────────────────────────────────────
+print("\nTraining Random Forest model...")
+
+model = RandomForestClassifier(
+    n_estimators=200,
+    max_depth=15,
+    min_samples_split=5,
+    random_state=42,
+    class_weight="balanced"   # handles unequal class sizes
+)
 
 model.fit(X_train, y_train)
-
 print("Model training completed.")
 
-# -----------------------------
-# Evaluate Model
-# -----------------------------
-
+# ── Evaluate ───────────────────────────────────────────────────────────────
 predictions = model.predict(X_test)
 
 print("\nModel Performance:")
 print(classification_report(y_test, predictions))
 
-# -----------------------------
-# Save Model
-# -----------------------------
+# ── Feature Importance ─────────────────────────────────────────────────────
+importance = pd.Series(
+    model.feature_importances_, index=FEATURES
+).sort_values(ascending=False)
 
-joblib.dump(model, "ml/models/environmental_risk_model.pkl")
+print("\nFeature Importance:")
+print(importance.to_string())
 
-print("\nModel saved.")
+# ── Save Model ─────────────────────────────────────────────────────────────
+model_path = os.path.join(ROOT, "ML", "models", "environmental_risk_model.pkl")
+joblib.dump(model, model_path)
+print(f"\nModel saved to: {model_path}")
