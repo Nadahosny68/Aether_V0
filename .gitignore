@@ -23,3 +23,12 @@ __pycache__/
 
 # logs
 logs/
+
+
+*.pbix
+*.pdf
+*.ispac
+
+.vs/
+bin/
+obj/
