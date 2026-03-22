@@ -150,5 +150,8 @@ ORDER BY days DESC;
 
 
 
-
+SELECT health_category, COUNT(*) as days
+FROM EnvironmentalFeatures
+GROUP BY health_category
+ORDER BY days DESC;
 
