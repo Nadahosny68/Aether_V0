@@ -13,9 +13,13 @@ import json
 import requests
 from datetime import datetime, timezone
 from collections import defaultdict
+from dotenv import load_dotenv
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, ROOT)
+
+load_dotenv(os.path.join(ROOT, ".env"))
+
 from utils.logger import get_logger
 
 log = get_logger("fetch_weather_forecast")

@@ -1,0 +1,224 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 340" width="900" height="340">
+  <defs>
+    <style>
+      @keyframes fadeUp { 0%{opacity:0;transform:translateY(12px)} 100%{opacity:1;transform:translateY(0)} }
+      @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+      @keyframes scan { 0%{transform:translateY(0)} 100%{transform:translateY(200px)} }
+      @keyframes blink { 0%,100%{opacity:1} 49%{opacity:1} 50%{opacity:0} 99%{opacity:0} }
+      @keyframes barGrow1 { 0%{height:0;y:200} 100%{height:60;y:140} }
+      @keyframes barGrow2 { 0%{height:0;y:200} 100%{height:90;y:110} }
+      @keyframes barGrow3 { 0%{height:0;y:200} 100%{height:40;y:160} }
+      @keyframes barGrow4 { 0%{height:0;y:200} 100%{height:110;y:90} }
+      @keyframes barGrow5 { 0%{height:0;y:200} 100%{height:75;y:125} }
+      @keyframes barGrow6 { 0%{height:0;y:200} 100%{height:50;y:150} }
+      @keyframes dash { to{stroke-dashoffset:-30} }
+      @keyframes arcFill { 0%{stroke-dasharray:0 220} 100%{stroke-dasharray:154 220} }
+      @keyframes countUp { 0%{opacity:0} 30%{opacity:1} }
+      @keyframes shimmer { 0%{opacity:0.3} 50%{opacity:0.7} 100%{opacity:0.3} }
+      @keyframes dotPulse { 0%,100%{r:3} 50%{r:5} }
+      @keyframes lineGrow { 0%{stroke-dasharray:0 400} 100%{stroke-dasharray:400 0} }
+    </style>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#060d18"/>
+      <stop offset="100%" stop-color="#0a1628"/>
+    </linearGradient>
+    <linearGradient id="tealG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1D9E75"/>
+      <stop offset="100%" stop-color="#0F6E56"/>
+    </linearGradient>
+    <linearGradient id="purpG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7F77DD"/>
+      <stop offset="100%" stop-color="#534AB7"/>
+    </linearGradient>
+    <linearGradient id="amberG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#EF9F27"/>
+      <stop offset="100%" stop-color="#BA7517"/>
+    </linearGradient>
+    <linearGradient id="cardL" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0e1e35" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#081525" stop-opacity="0.95"/>
+    </linearGradient>
+    <clipPath id="clip1"><rect x="0" y="0" width="900" height="340"/></clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="340" fill="url(#bg)"/>
+
+  <!-- Grid lines -->
+  <g opacity="0.06" stroke="#1D9E75" stroke-width="0.5">
+    <line x1="0" y1="57" x2="900" y2="57"/>
+    <line x1="0" y1="114" x2="900" y2="114"/>
+    <line x1="0" y1="171" x2="900" y2="171"/>
+    <line x1="0" y1="228" x2="900" y2="228"/>
+    <line x1="0" y1="285" x2="900" y2="285"/>
+    <line x1="150" y1="0" x2="150" y2="340"/>
+    <line x1="300" y1="0" x2="300" y2="340"/>
+    <line x1="450" y1="0" x2="450" y2="340"/>
+    <line x1="600" y1="0" x2="600" y2="340"/>
+    <line x1="750" y1="0" x2="750" y2="340"/>
+  </g>
+
+  <!-- Scanning line -->
+  <rect x="0" y="0" width="900" height="2" fill="#1D9E75" opacity="0.15"
+    style="animation: scan 4s linear infinite"/>
+
+  <!-- Cairo skyline silhouette -->
+  <g opacity="0.12" fill="#1D9E75">
+    <rect x="30" y="230" width="18" height="80"/>
+    <rect x="55" y="210" width="22" height="100"/>
+    <rect x="84" y="220" width="14" height="90"/>
+    <rect x="105" y="200" width="30" height="110"/>
+    <rect x="142" y="215" width="16" height="95"/>
+    <rect x="165" y="190" width="40" height="120"/>
+    <rect x="212" y="205" width="20" height="105"/>
+    <rect x="239" y="195" width="28" height="115"/>
+    <rect x="274" y="218" width="16" height="92"/>
+    <!-- Pyramid shapes -->
+    <polygon points="300,180 330,260 270,260"/>
+    <polygon points="345,195 370,260 320,260"/>
+    <rect x="390" y="225" width="24" height="85"/>
+    <rect x="421" y="210" width="18" height="100"/>
+    <rect x="450" y="200" width="32" height="110"/>
+  </g>
+
+  <!-- Left panel: Title -->
+  <g style="animation: fadeUp 0.8s ease forwards">
+    <text x="48" y="72" font-family="system-ui,sans-serif" font-size="11" fill="#1D9E75" letter-spacing="4" font-weight="500">CAIRO · ENVIRONMENTAL INTELLIGENCE</text>
+    <text x="44" y="124" font-family="system-ui,sans-serif" font-size="38" fill="white" font-weight="700" letter-spacing="-1">Aether</text>
+    <text x="44" y="152" font-family="system-ui,sans-serif" font-size="14" fill="#5DCAA5" font-weight="400">Environmental Monitoring Platform</text>
+    <text x="44" y="185" font-family="system-ui,sans-serif" font-size="12" fill="#4a6a5a" width="260">Predicting environmental health</text>
+    <text x="44" y="202" font-family="system-ui,sans-serif" font-size="12" fill="#4a6a5a">risks through ML</text>
+  </g>
+
+  <!-- Status pills -->
+  <g style="animation: fadeUp 1s ease 0.3s both forwards; opacity:0">
+    <rect x="44" y="220" width="80" height="22" rx="11" fill="#0F6E56"/>
+    <text x="84" y="235" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#9FE1CB" font-weight="500">Python 3.9+</text>
+    <rect x="132" y="220" width="78" height="22" rx="11" fill="#1e1540"/>
+    <text x="171" y="235" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#AFA9EC" font-weight="500">MIT License</text>
+    <rect x="218" y="220" width="72" height="22" rx="11" fill="#1a2e0a"/>
+    <text x="254" y="235" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#97C459" font-weight="500">97% F1</text>
+  </g>
+
+  <!-- Divider -->
+  <line x1="44" y1="262" x2="310" y2="262" stroke="#1D9E75" stroke-width="0.5" opacity="0.3"/>
+
+  <!-- Tech stack pills -->
+  <g style="animation: fadeUp 1s ease 0.6s both forwards; opacity:0">
+    <text x="44" y="282" font-family="system-ui,sans-serif" font-size="10" fill="#2a4a3a">SQL Server · scikit-learn · Prefect · Power BI</text>
+  </g>
+
+  <!-- ===== RIGHT PANEL: AQI Gauge ===== -->
+  <rect x="340" y="30" width="175" height="175" rx="12" fill="url(#cardL)" stroke="#1D9E75" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="427" y="55" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#5DCAA5" letter-spacing="2">AQI MONITOR</text>
+
+  <!-- Arc background -->
+  <circle cx="427" cy="130" r="55" fill="none" stroke="#0e2a1e" stroke-width="10"/>
+  <!-- Arc fill animated -->
+  <circle cx="427" cy="130" r="55" fill="none" stroke="url(#tealG)" stroke-width="10"
+    stroke-dasharray="0 220" stroke-linecap="round"
+    transform="rotate(-220 427 130)"
+    style="animation: arcFill 2s ease 0.5s forwards"/>
+
+  <!-- Center value -->
+  <text x="427" y="124" text-anchor="middle" font-family="system-ui,sans-serif" font-size="28" fill="white" font-weight="700"
+    style="animation: countUp 1s ease 1s forwards; opacity:0">87</text>
+  <text x="427" y="142" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#5DCAA5">US AQI</text>
+
+  <!-- Status badge -->
+  <rect x="372" y="163" width="110" height="22" rx="11" fill="#0F6E56"/>
+  <text x="427" y="178" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#E1F5EE" font-weight="500">Moderate Risk Day</text>
+
+  <!-- ===== Middle panel: Metric cards ===== -->
+  <!-- PM2.5 card -->
+  <rect x="530" y="30" width="155" height="78" rx="10" fill="url(#cardL)" stroke="#534AB7" stroke-width="0.5" stroke-opacity="0.4"/>
+  <text x="548" y="55" font-family="system-ui,sans-serif" font-size="10" fill="#AFA9EC" letter-spacing="1">PM2.5</text>
+  <text x="548" y="82" font-family="system-ui,sans-serif" font-size="26" fill="white" font-weight="700"
+    style="animation: countUp 1s ease 0.8s forwards; opacity:0">34.2</text>
+  <text x="668" y="82" text-anchor="end" font-family="system-ui,sans-serif" font-size="11" fill="#7F77DD">μg/m³</text>
+  <line x1="548" y1="90" x2="668" y2="90" stroke="#534AB7" stroke-width="0.5" opacity="0.3"/>
+  <text x="548" y="103" font-family="system-ui,sans-serif" font-size="10" fill="#3C3489">▲ 12% from yesterday</text>
+
+  <!-- Heat Index card -->
+  <rect x="530" y="118" width="155" height="78" rx="10" fill="url(#cardL)" stroke="#EF9F27" stroke-width="0.5" stroke-opacity="0.4"/>
+  <text x="548" y="143" font-family="system-ui,sans-serif" font-size="10" fill="#FAC775" letter-spacing="1">HEAT INDEX</text>
+  <text x="548" y="170" font-family="system-ui,sans-serif" font-size="26" fill="white" font-weight="700"
+    style="animation: countUp 1s ease 1s forwards; opacity:0">41.6</text>
+  <text x="668" y="170" text-anchor="end" font-family="system-ui,sans-serif" font-size="11" fill="#EF9F27">°C</text>
+  <line x1="548" y1="180" x2="668" y2="180" stroke="#EF9F27" stroke-width="0.5" opacity="0.3"/>
+  <text x="548" y="191" font-family="system-ui,sans-serif" font-size="10" fill="#633806">Urban heat island</text>
+
+  <!-- ===== Bottom panel: Bar chart ===== -->
+  <rect x="340" y="218" width="345" height="100" rx="10" fill="url(#cardL)" stroke="#1D9E75" stroke-width="0.5" stroke-opacity="0.25"/>
+  <text x="358" y="238" font-family="system-ui,sans-serif" font-size="10" fill="#5DCAA5" letter-spacing="2">AQI TREND · LAST 6 MONTHS</text>
+
+  <!-- Bars -->
+  <rect x="370" y="140" width="22" height="60" rx="3" fill="#1D9E75" opacity="0.7"
+    style="animation: barGrow1 1s ease 0.6s both"/>
+  <rect x="403" y="110" width="22" height="90" rx="3" fill="#1D9E75" opacity="0.85"
+    style="animation: barGrow2 1s ease 0.75s both"/>
+  <rect x="436" y="160" width="22" height="40" rx="3" fill="#5DCAA5" opacity="0.7"
+    style="animation: barGrow3 1s ease 0.9s both"/>
+  <rect x="469" y="90" width="22" height="110" rx="3" fill="#EF9F27" opacity="0.8"
+    style="animation: barGrow4 1s ease 1.05s both"/>
+  <rect x="502" y="125" width="22" height="75" rx="3" fill="#1D9E75" opacity="0.75"
+    style="animation: barGrow5 1s ease 1.2s both"/>
+  <rect x="535" y="150" width="22" height="50" rx="3" fill="#5DCAA5" opacity="0.65"
+    style="animation: barGrow6 1s ease 1.35s both"/>
+
+  <line x1="358" y1="200" x2="660" y2="200" stroke="#1D9E75" stroke-width="0.5" opacity="0.2"/>
+  <text x="381" y="213" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#2a4a3a">Oct</text>
+  <text x="414" y="213" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#2a4a3a">Nov</text>
+  <text x="447" y="213" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#2a4a3a">Dec</text>
+  <text x="480" y="213" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#2a4a3a">Jan</text>
+  <text x="513" y="213" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#2a4a3a">Feb</text>
+  <text x="546" y="213" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#2a4a3a">Mar</text>
+
+  <!-- Live dot -->
+  <circle cx="557" cy="155" r="4" fill="#1D9E75" style="animation: dotPulse 1.5s ease infinite"/>
+  <circle cx="557" cy="155" r="8" fill="none" stroke="#1D9E75" stroke-width="0.5" opacity="0.3"
+    style="animation: dotPulse 1.5s ease infinite"/>
+
+  <!-- ===== Far right: Status panel ===== -->
+  <rect x="706" y="30" width="170" height="288" rx="12" fill="url(#cardL)" stroke="#1D9E75" stroke-width="0.5" stroke-opacity="0.3"/>
+  <text x="791" y="55" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#5DCAA5" letter-spacing="2">RISK LEVELS</text>
+  <line x1="720" y1="62" x2="862" y2="62" stroke="#1D9E75" stroke-width="0.3" opacity="0.3"/>
+
+  <!-- Risk categories -->
+  <g style="animation: fadeUp 0.6s ease 1.2s both forwards; opacity:0">
+    <rect x="720" y="72" width="136" height="38" rx="6" fill="#0c2018"/>
+    <rect x="720" y="72" width="4" height="38" rx="2" fill="#1D9E75"/>
+    <text x="734" y="87" font-family="system-ui,sans-serif" font-size="10" fill="#5DCAA5" font-weight="500">Safe Air Day</text>
+    <text x="734" y="102" font-family="system-ui,sans-serif" font-size="9" fill="#0F6E56">52 days · 5%</text>
+    <text x="851" y="96" text-anchor="end" font-family="system-ui,sans-serif" font-size="10" fill="#1D9E75">●</text>
+  </g>
+  <g style="animation: fadeUp 0.6s ease 1.35s both forwards; opacity:0">
+    <rect x="720" y="118" width="136" height="38" rx="6" fill="#1a1508"/>
+    <rect x="720" y="118" width="4" height="38" rx="2" fill="#EF9F27"/>
+    <text x="734" y="133" font-family="system-ui,sans-serif" font-size="10" fill="#FAC775" font-weight="500">Moderate Risk</text>
+    <text x="734" y="148" font-family="system-ui,sans-serif" font-size="9" fill="#854F0B">353 days · 31%</text>
+  </g>
+  <g style="animation: fadeUp 0.6s ease 1.5s both forwards; opacity:0">
+    <rect x="720" y="164" width="136" height="38" rx="6" fill="#160d1e"/>
+    <rect x="720" y="164" width="4" height="38" rx="2" fill="#7F77DD"/>
+    <text x="734" y="179" font-family="system-ui,sans-serif" font-size="10" fill="#AFA9EC" font-weight="500">High Resp. Risk</text>
+    <text x="734" y="194" font-family="system-ui,sans-serif" font-size="9" fill="#534AB7">556 days · 48%</text>
+  </g>
+  <g style="animation: fadeUp 0.6s ease 1.65s both forwards; opacity:0">
+    <rect x="720" y="210" width="136" height="38" rx="6" fill="#1a100a"/>
+    <rect x="720" y="210" width="4" height="38" rx="2" fill="#D85A30"/>
+    <text x="734" y="225" font-family="system-ui,sans-serif" font-size="10" fill="#F0997B" font-weight="500">Mask Recommended</text>
+    <text x="734" y="240" font-family="system-ui,sans-serif" font-size="9" fill="#993C1D">150 days · 13%</text>
+  </g>
+  <g style="animation: fadeUp 0.6s ease 1.8s both forwards; opacity:0">
+    <rect x="720" y="256" width="136" height="38" rx="6" fill="#1a0808"/>
+    <rect x="720" y="256" width="4" height="38" rx="2" fill="#E24B4A"/>
+    <text x="734" y="271" font-family="system-ui,sans-serif" font-size="10" fill="#F09595" font-weight="500">Avoid Outdoors</text>
+    <text x="734" y="286" font-family="system-ui,sans-serif" font-size="9" fill="#A32D2D">43 days · 4%</text>
+  </g>
+
+  <!-- Bottom bar -->
+  <rect x="0" y="326" width="900" height="14" fill="#040c18"/>
+  <rect x="0" y="326" width="900" height="1" fill="#1D9E75" opacity="0.3"/>
+  <text x="450" y="337" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#0F6E56" letter-spacing="3">AETHER ENVIRONMENTAL MONITORING PLATFORM · CAIRO, EGYPT</text>
+</svg>

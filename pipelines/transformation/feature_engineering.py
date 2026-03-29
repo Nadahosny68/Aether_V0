@@ -113,4 +113,5 @@ if __name__ == "__main__":
 # No mode switching, no API logic, no command line arguments needed. It always reads from `data/staging/weather_clean.csv` and `data/staging/pollution_clean.csv`, merges on date, computes all features, and saves one combined file to `data/processed/environmental_features.csv`.
 
 # Run it from the terminal:
-# python pipelines/transformation/feature_engineering.py
+# python pipelines/transformation/feature_engineering.py                 # API mode
+# python pipelines/transformation/feature_engineering.py --historical    # historical mode
