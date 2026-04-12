@@ -51,6 +51,18 @@ CREATE TABLE dbo.ForecastPredictions (
         UNIQUE (forecast_date, forecast_horizon, model_version)
 );
 
+
+
+ALTER TABLE ForecastPredictions
+ADD
+    temp_range         FLOAT,
+    heat_stress_peak   FLOAT,
+    dust_risk_index    FLOAT,
+    rain_wash_effect   FLOAT;
+
+
+
+
 -- Index for dashboard queries (latest forecast for a given date)
 CREATE NONCLUSTERED INDEX ix_forecast_date
     ON dbo.ForecastPredictions (forecast_date, forecast_horizon)
@@ -77,19 +89,29 @@ SELECT
     forecast_horizon,
     predicted_category,
     confidence,
+
+    -- NEW features
+    temp_range,
+    heat_stress_peak,
+    dust_risk_index,
+    rain_wash_effect,
+
     prob_safe,
     prob_moderate,
     prob_high_resp,
     prob_mask,
     prob_avoid,
+
     temperature,
     humidity,
     wind,
     pm25,
     aqi,
+
     heat_index,
     pollution_level,
     respiratory_stress,
+
     generated_at,
     model_version
 FROM ranked

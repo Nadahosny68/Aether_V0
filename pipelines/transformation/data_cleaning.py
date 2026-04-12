@@ -1,3 +1,17 @@
+"""
+pipelines/transformation/data_cleaning.py
+──────────────────────────────────────────
+Cleans historical weather and pollution CSVs.
+
+Root cause of 0 pollution rows — fixed here:
+  The format="%y/%m/%d" and dayfirst=True attempts both converted
+  every "2022-08-01" date to NaT because they forced the wrong
+  interpretation. The date is plain ISO — no format override needed.
+
+Weather date:    "2000-01-01 00:00:00+00:00" → strip timezone → date
+Pollution date:  "2022-08-01" → standard ISO parse → date
+"""
+
 import pandas as pd
 import os
 
@@ -10,134 +24,159 @@ STAGING_DIR   = os.path.join(ROOT, "data", "staging")
 os.makedirs(STAGING_DIR, exist_ok=True)
 
 
-# ── WEATHER CLEANING ───────────────────────────────────────────────────────
 def clean_weather():
     print("\n--- Weather Dataset ---")
     df = pd.read_csv(WEATHER_RAW)
+    print(f"  Rows loaded: {len(df)}")
 
-    print(f"  Rows loaded:      {len(df)}")
-    print(f"  Columns:          {list(df.columns)}")
-    print(f"  Nulls per column:\n{df.isnull().sum()[df.isnull().sum() > 0]}")
-
-    # Step 1: Remove exact duplicate rows
-    before = len(df)
     df = df.drop_duplicates()
-    print(f"  Duplicates removed: {before - len(df)}")
 
-    # Step 2: Rename FIRST so all further work uses clean names
     df = df.rename(columns={
-        "date":                      "date",
-        "temperature_2m_mean":       "temperature",
-        "relative_humidity_2m_mean": "humidity",
-        "wind_speed_10m_mean":       "wind",
-        "pressure_msl_mean":         "pressure",
-        "cloud_cover_mean":          "cloud_cover",
-        "sunshine_duration":         "sunshine_duration",
+        "temperature_2m_mean"        : "temperature",
+        "relative_humidity_2m_mean"  : "humidity",
+        "wind_speed_10m_mean"        : "wind",
+        "pressure_msl_mean"          : "pressure",
+        "cloud_cover_mean"           : "cloud_cover",
+        "sunshine_duration"          : "sunshine_duration",
+        "temperature_2m_max"         : "temp_max",
+        "temperature_2m_min"         : "temp_min",
+        "apparent_temperature_max"   : "apparent_temp_max",
+        "apparent_temperature_min"   : "apparent_temp_min",
+        "apparent_temperature_mean"  : "apparent_temp_mean",
+        "relative_humidity_2m_max"   : "humidity_max",
+        "relative_humidity_2m_min"   : "humidity_min",
+        "wind_speed_10m_max"         : "wind_max",
+        "wind_gusts_10m_max"         : "wind_gust_max",
+        "precipitation_sum"          : "precipitation",
+        "rain_sum"                   : "rain_sum",
+        "dew_point_2m_mean"          : "dew_point",
+        "shortwave_radiation_sum"    : "shortwave_radiation",
+        "vapour_pressure_deficit_max": "vapour_pressure_deficit",
     })
 
-    # Step 3: Keep only the columns Aether needs
-    keep = ["date", "temperature", "humidity", "wind",
-            "pressure", "cloud_cover", "sunshine_duration"]
-    existing = [c for c in keep if c in df.columns]
-    df = df[existing]
+    keep = [
+        "date",
+        "temperature", "humidity", "wind", "pressure", "cloud_cover",
+        "sunshine_duration",
+        "temp_max", "temp_min",
+        "apparent_temp_max", "apparent_temp_min", "apparent_temp_mean",
+        "humidity_max", "humidity_min",
+        "wind_max", "wind_gust_max",
+        "precipitation", "rain_sum",
+        "dew_point", "shortwave_radiation", "vapour_pressure_deficit",
+    ]
+    df = df[[c for c in keep if c in df.columns]]
 
-    # Step 4: Drop rows only where the critical columns are null
-    # (temperature, humidity, wind are essential — date is always required)
+    # Weather date: "2000-01-01 00:00:00+00:00" — has timezone, strip it
+    df["date"] = pd.to_datetime(df["date"], errors="coerce", utc=True)
+    df["date"] = df["date"].dt.tz_localize(None).dt.date
+
     critical = ["date", "temperature", "humidity", "wind"]
     before = len(df)
     df = df.dropna(subset=critical)
     print(f"  Rows dropped (missing critical): {before - len(df)}")
 
-    # Step 5: Fill non-critical nulls with column median
-    for col in ["pressure", "cloud_cover", "sunshine_duration"]:
-        if col in df.columns and df[col].isnull().any():
-            median_val = df[col].median()
-            df[col] = df[col].fillna(median_val)
-            print(f"  Filled nulls in '{col}' with median: {round(median_val, 2)}")
+    for col in [c for c in df.columns if c not in critical]:
+        if df[col].isnull().any():
+            df[col] = df[col].fillna(df[col].median())
 
-    # Step 6: Normalize date
-    df["date"] = pd.to_datetime(df["date"], errors="coerce").dt.date
-    df = df.dropna(subset=["date"])
-
-    print(f"  Final rows: {len(df)}")
+    print(f"  Weather cleaned: {len(df)} rows")
+    print(f"  Date range: {df['date'].min()} to {df['date'].max()}")
     return df
 
 
-# ── POLLUTION CLEANING ─────────────────────────────────────────────────────
 def clean_pollution():
     print("\n--- Pollution Dataset ---")
     df = pd.read_csv(POLLUTION_RAW)
+    print(f"  Rows loaded: {len(df)}")
 
-    print(f"  Rows loaded:      {len(df)}")
-    print(f"  Columns:          {list(df.columns)}")
-    print(f"  Nulls per column:\n{df.isnull().sum()[df.isnull().sum() > 0]}")
-
-    # Step 1: Remove duplicates
-    before = len(df)
     df = df.drop_duplicates()
-    print(f"  Duplicates removed: {before - len(df)}")
 
-    # Step 2: Rename FIRST
     df = df.rename(columns={
-        "date":             "date",
-        "pm2_5":            "pm25",
-        "pm10":             "pm10",
-        "us_aqi":           "aqi",
-        "european_aqi":     "european_aqi",
-        "ozone":            "ozone",
-        "nitrogen_dioxide": "nitrogen_dioxide",
-        "sulphur_dioxide":  "sulphur_dioxide",
-        "dust":             "dust",
-        "uv_index":         "uv_index",
+        "pm2_5"  : "pm25",
+        "us_aqi" : "aqi",
     })
 
-    # Step 3: Keep only what Aether needs
-    keep = ["date", "pm25", "pm10", "aqi", "european_aqi",
-            "ozone", "nitrogen_dioxide", "sulphur_dioxide",
-            "dust", "uv_index"]
-    existing = [c for c in keep if c in df.columns]
-    df = df[existing]
+    keep = [
+        "date", "pm25", "pm10", "aqi", "european_aqi",
+        "ozone", "nitrogen_dioxide", "sulphur_dioxide",
+        "dust", "uv_index", "carbon_monoxide", "aerosol_optical_depth",
+    ]
+    df = df[[c for c in keep if c in df.columns]]
 
-    # Step 4: Drop rows only where AQI or PM2.5 are missing
-    # (these are the core pollution metrics — without them the row is useless)
-    critical = ["date", "aqi"]
+    # ── THE ACTUAL FIX ────────────────────────────────────────────────────────
+    # Pollution date is plain ISO "2022-08-01" — no format override needed.
+    # format="%y/%m/%d" → NaT (wrong year spec)
+    # dayfirst=True     → NaT (still wrong)
+    # Correct: just let pandas parse it normally
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df["date"] = df["date"].dt.date
+    # ─────────────────────────────────────────────────────────────────────────
+
+    # Only drop rows where the date itself failed to parse
     before = len(df)
-    df = df.dropna(subset=critical)
-    print(f"  Rows dropped (missing critical): {before - len(df)}")
-
-    # Step 5: Fill remaining nulls with column median
-    fill_cols = ["pm25", "pm10", "ozone", "nitrogen_dioxide",
-                "sulphur_dioxide", "dust", "uv_index", "european_aqi"]
-    for col in fill_cols:
-        if col in df.columns and df[col].isnull().any():
-            median_val = df[col].median()
-            df[col] = df[col].fillna(median_val)
-            print(f"  Filled nulls in '{col}' with median: {round(median_val, 2)}")
-
-    # Step 6: Normalize date
-    df["date"] = pd.to_datetime(df["date"], errors="coerce").dt.date
     df = df.dropna(subset=["date"])
+    print(f"  Rows dropped (unparseable date): {before - len(df)}")
 
-    print(f"  Final rows: {len(df)}")
+    # Fill numeric nulls with median — do NOT drop rows for missing AQI
+    # Your first 3 rows are all NaN but dates are valid — keep them, fill values
+    for col in [c for c in df.columns if c != "date"]:
+        if df[col].isnull().any():
+            n = df[col].isnull().sum()
+            df[col] = df[col].fillna(df[col].median())
+            print(f"  Filled {n} nulls in '{col}' with median")
+
+    print(f"  Pollution cleaned: {len(df)} rows")
+    print(f"  Date range: {df['date'].min()} to {df['date'].max()}")
     return df
 
 
-# ── SAVE ───────────────────────────────────────────────────────────────────
+def validate_and_find_gaps(weather: pd.DataFrame, pollution: pd.DataFrame):
+    print("\n--- Overlap & Gap Analysis ---")
+
+    w_dates = set(weather["date"])
+    p_dates = set(pollution["date"])
+    common  = w_dates & p_dates
+
+    print(f"  Weather dates:   {len(w_dates)}  ({min(w_dates)} → {max(w_dates)})")
+    print(f"  Pollution dates: {len(p_dates)}  ({min(p_dates)} → {max(p_dates)})")
+    print(f"  Common dates:    {len(common)}")
+
+    overlap_start = max(min(w_dates), min(p_dates))
+    overlap_end   = min(max(w_dates), max(p_dates))
+    full_range    = set(pd.date_range(str(overlap_start), str(overlap_end)).date)
+    missing       = sorted(full_range - p_dates)
+
+    print(f"  Overlap period:  {overlap_start} → {overlap_end}")
+    print(f"  Expected days:   {len(full_range)}")
+    print(f"  Missing days:    {len(missing)}")
+
+    if missing:
+        print(f"  First 5 missing: {missing[:5]}")
+        out = os.path.join(STAGING_DIR, "missing_pollution_dates.csv")
+        pd.DataFrame({"date": missing}).to_csv(out, index=False)
+        print(f"  Saved gap list → {out}")
+
+    return missing
+
+
 def run():
     print("Starting cleaning pipeline...")
-    print("NOTE: API data is handled separately in feature_engineering.py")
-    print("      This script only cleans historical CSV files.")
 
     weather   = clean_weather()
     pollution = clean_pollution()
 
-    weather.to_csv(os.path.join(STAGING_DIR, "weather_clean.csv"),   index=False)
+    weather.to_csv(os.path.join(STAGING_DIR, "weather_clean.csv"),    index=False)
     pollution.to_csv(os.path.join(STAGING_DIR, "pollution_clean.csv"), index=False)
 
-    print("\n--- Summary ---")
-    print(f"  Weather rows saved:   {len(weather)}")
-    print(f"  Pollution rows saved: {len(pollution)}")
-    print(f"  Saved to: {STAGING_DIR}")
+    missing = validate_and_find_gaps(weather, pollution)
+
+    print("\n--- Final Summary ---")
+    print(f"  Weather rows:   {len(weather)}")
+    print(f"  Pollution rows: {len(pollution)}")
+    print(f"  Gap days:       {len(missing)}")
+    if missing:
+        print(f"  Next step: run fill_pollution_gaps.py to fetch {len(missing)} missing days")
     print("Cleaning completed.")
 
 

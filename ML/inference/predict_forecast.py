@@ -1,12 +1,11 @@
 """
 ML/inference/predict_forecast.py
 ─────────────────────────────────
-Loads the trained Random Forest model and runs inference on
-forecast_features.csv, then upserts results to ForecastPredictions.
+Loads the trained model and runs inference on forecast_features.csv,
+then upserts results to ForecastPredictions.
 
-Usage:
-    python ML/inference/predict_forecast.py
-    python ML/inference/predict_forecast.py --dry-run   (print only, no DB write)
+New in v2: loads the saved feature_columns.pkl so the feature list
+always matches whatever was used at training time — no manual sync needed.
 """
 
 import os
@@ -16,40 +15,30 @@ import pickle
 import pandas as pd
 import pyodbc
 from datetime import datetime, timezone
+from dotenv import load_dotenv
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, ROOT)
 
-from dotenv import load_dotenv          # ← add this
-load_dotenv(os.path.join(ROOT, ".env")) # ← add this
+load_dotenv(os.path.join(ROOT, ".env"))
 
 from utils.logger import get_logger
 
 log = get_logger("predict_forecast")
 
 MODEL_PATH    = os.path.join(ROOT, "ML", "models", "environmental_risk_model.pkl")
-FEATURES_PATH = os.path.join(ROOT, "data", "processed", "forecast_features.csv")
-MODEL_VERSION = "v2.0"
+FEATURES_PATH = os.path.join(ROOT, "ML", "models", "feature_columns.pkl")
+DATA_PATH     = os.path.join(ROOT, "data", "processed", "forecast_features.csv")
+MODEL_VERSION = "v2.1"
 
-# Must match the feature list used at training time (feature_engineering.py)
-FEATURE_COLS = [
-    "temperature", "humidity", "wind", "heat_index",
-    "pm25", "pm10", "aqi", "pollution_level",
-    "respiratory_stress", "uv_risk",
-    "pressure", "ozone", "nitrogen_dioxide",
-]
-
-# Class label → probability column name
 CLASS_PROB_COLS = {
-    "Safe Air Day"                : "prob_safe",
-    "Moderate Risk Day"           : "prob_moderate",
-    "High Respiratory Risk Day"   : "prob_high_resp",
-    "Mask Recommended Day"        : "prob_mask",
-    "Avoid Outdoor Activity Day"  : "prob_avoid",
+    "Safe Air Day"               : "prob_safe",
+    "Moderate Risk Day"          : "prob_moderate",
+    "High Respiratory Risk Day"  : "prob_high_resp",
+    "Mask Recommended Day"       : "prob_mask",
+    "Avoid Outdoor Activity Day" : "prob_avoid",
 }
 
-
-# ── Load model ─────────────────────────────────────────────────────────────────
 
 def load_model():
     if not os.path.exists(MODEL_PATH):
@@ -60,31 +49,54 @@ def load_model():
     return model
 
 
-# ── Load features ──────────────────────────────────────────────────────────────
-
-def load_features() -> pd.DataFrame:
+def load_feature_cols() -> list:
+    """
+    Load the exact feature list saved during training.
+    This guarantees inference always uses the same columns as training,
+    even after future feature additions.
+    """
     if not os.path.exists(FEATURES_PATH):
+        # Fallback to base features if file doesn't exist (pre-v2 model)
+        log.warning(
+            "feature_columns.pkl not found — using base feature list. "
+            "Re-run train_risk_model.py to generate it."
+        )
+        return [
+            "temperature", "humidity", "wind", "heat_index",
+            "pm25", "pm10", "aqi", "pollution_level",
+            "respiratory_stress", "uv_risk",
+            "pressure", "ozone", "nitrogen_dioxide",
+        ]
+    with open(FEATURES_PATH, "rb") as f:
+        cols = pickle.load(f)
+    log.info("Feature columns loaded: %s", cols)
+    return cols
+
+
+def load_data(feature_cols: list) -> pd.DataFrame:
+    if not os.path.exists(DATA_PATH):
         raise FileNotFoundError(
-            f"Forecast features not found: {FEATURES_PATH}\n"
+            f"Forecast features not found: {DATA_PATH}\n"
             "Run feature_engineering_forecast.py first."
         )
-    df = pd.read_csv(FEATURES_PATH)
+    df = pd.read_csv(DATA_PATH)
     df["date"] = pd.to_datetime(df["date"]).dt.date
     log.info("Loaded forecast features: %d rows", len(df))
 
-    missing = [c for c in FEATURE_COLS if c not in df.columns]
-    if missing:
-        raise ValueError(f"Missing feature columns: {missing}")
+    # Fill any missing new feature columns with 0
+    # (handles case where forecast data doesn't have all columns)
+    for col in feature_cols:
+        if col not in df.columns:
+            log.warning("Feature '%s' missing from forecast data — filling with 0", col)
+            df[col] = 0.0
 
     return df
 
 
-# ── Run inference ──────────────────────────────────────────────────────────────
+def predict(model, df: pd.DataFrame, feature_cols: list) -> pd.DataFrame:
+    X = df[feature_cols]
 
-def predict(model, df: pd.DataFrame) -> pd.DataFrame:
-    X = df[FEATURE_COLS]
-
-    predictions  = model.predict(X)
+    predictions   = model.predict(X)
     probabilities = model.predict_proba(X)
     class_labels  = list(model.classes_)
 
@@ -92,7 +104,6 @@ def predict(model, df: pd.DataFrame) -> pd.DataFrame:
     df["predicted_category"] = predictions
     df["confidence"]         = probabilities.max(axis=1).round(4)
 
-    # Per-class probabilities
     prob_df = pd.DataFrame(probabilities, columns=class_labels, index=df.index)
     for label, col in CLASS_PROB_COLS.items():
         df[col] = prob_df[label].round(4) if label in prob_df.columns else 0.0
@@ -106,8 +117,6 @@ def predict(model, df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-
-# ── Database upsert ────────────────────────────────────────────────────────────
 
 def get_connection() -> pyodbc.Connection:
     server   = os.environ["SQL_SERVER"]
@@ -124,39 +133,37 @@ def get_connection() -> pyodbc.Connection:
 
 UPSERT_SQL = """
 MERGE dbo.ForecastPredictions AS target
-USING (VALUES (?, ?, ?, ?)) AS src (forecast_date, forecast_horizon, model_version, generated_at)
-ON  target.forecast_date     = src.forecast_date
-AND target.forecast_horizon  = src.forecast_horizon
-AND target.model_version     = src.model_version
-WHEN MATCHED THEN
-    UPDATE SET
-        generated_at        = ?,
-        temperature         = ?, humidity       = ?, wind           = ?,
-        pressure            = ?, cloud_cover    = ?,
-        pm25                = ?, pm10           = ?, aqi            = ?,
-        ozone               = ?, nitrogen_dioxide = ?, sulphur_dioxide = ?,
-        heat_index          = ?, pollution_level  = ?,
-        respiratory_stress  = ?, uv_risk          = ?,
-        predicted_category  = ?, confidence       = ?,
-        prob_safe           = ?, prob_moderate    = ?, prob_high_resp  = ?,
-        prob_mask           = ?, prob_avoid       = ?
-WHEN NOT MATCHED THEN
-    INSERT (
-        forecast_date, forecast_horizon, generated_at, model_version,
-        temperature, humidity, wind, pressure, cloud_cover,
-        pm25, pm10, aqi, ozone, nitrogen_dioxide, sulphur_dioxide,
-        heat_index, pollution_level, respiratory_stress, uv_risk,
-        predicted_category, confidence,
-        prob_safe, prob_moderate, prob_high_resp, prob_mask, prob_avoid
-    )
-    VALUES (
-        ?, ?, ?, ?,
-        ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?,
-        ?, ?,
-        ?, ?, ?, ?, ?
-    );
+USING (VALUES (?, ?, ?, ?)) AS src
+    (forecast_date, forecast_horizon, model_version, generated_at)
+ON  target.forecast_date    = src.forecast_date
+AND target.forecast_horizon = src.forecast_horizon
+AND target.model_version    = src.model_version
+WHEN MATCHED THEN UPDATE SET
+    generated_at       = ?,
+    temperature        = ?, humidity          = ?, wind             = ?,
+    pressure           = ?, cloud_cover       = ?,
+    pm25               = ?, pm10              = ?, aqi              = ?,
+    ozone              = ?, nitrogen_dioxide  = ?, sulphur_dioxide  = ?,
+    heat_index         = ?, pollution_level   = ?,
+    respiratory_stress = ?, uv_risk           = ?,
+    predicted_category = ?, confidence        = ?,
+    prob_safe          = ?, prob_moderate     = ?, prob_high_resp   = ?,
+    prob_mask          = ?, prob_avoid        = ?
+WHEN NOT MATCHED THEN INSERT (
+    forecast_date, forecast_horizon, generated_at, model_version,
+    temperature, humidity, wind, pressure, cloud_cover,
+    pm25, pm10, aqi, ozone, nitrogen_dioxide, sulphur_dioxide,
+    heat_index, pollution_level, respiratory_stress, uv_risk,
+    predicted_category, confidence,
+    prob_safe, prob_moderate, prob_high_resp, prob_mask, prob_avoid
+) VALUES (
+    ?, ?, ?, ?,
+    ?, ?, ?, ?, ?,
+    ?, ?, ?, ?, ?, ?,
+    ?, ?, ?, ?,
+    ?, ?,
+    ?, ?, ?, ?, ?
+);
 """
 
 
@@ -167,34 +174,32 @@ def upsert(df: pd.DataFrame) -> None:
     rows_affected = 0
 
     for _, row in df.iterrows():
-        vals_match = (
-            str(row["date"]), int(row["horizon"]), MODEL_VERSION, now,
-        )
-        vals_update = (
+        match  = (str(row["date"]), int(row["horizon"]), MODEL_VERSION, now)
+        update = (
             now,
-            row.get("temperature"), row.get("humidity"), row.get("wind"),
+            row.get("temperature"), row.get("humidity"),         row.get("wind"),
             row.get("pressure"),    row.get("cloud_cover"),
-            row.get("pm25"),        row.get("pm10"),     row.get("aqi"),
-            row.get("ozone"),       row.get("nitrogen_dioxide"), row.get("sulphur_dioxide"),
+            row.get("pm25"),        row.get("pm10"),              row.get("aqi"),
+            row.get("ozone"),       row.get("nitrogen_dioxide"),  row.get("sulphur_dioxide"),
             row.get("heat_index"),  row.get("pollution_level"),
             row.get("respiratory_stress"), row.get("uv_risk"),
-            row["predicted_category"], row["confidence"],
-            row.get("prob_safe"),   row.get("prob_moderate"), row.get("prob_high_resp"),
+            row["predicted_category"],     row["confidence"],
+            row.get("prob_safe"),   row.get("prob_moderate"),     row.get("prob_high_resp"),
             row.get("prob_mask"),   row.get("prob_avoid"),
         )
-        vals_insert = (
+        insert = (
             str(row["date"]), int(row["horizon"]), now, MODEL_VERSION,
-            row.get("temperature"), row.get("humidity"), row.get("wind"),
+            row.get("temperature"), row.get("humidity"),         row.get("wind"),
             row.get("pressure"),    row.get("cloud_cover"),
-            row.get("pm25"),        row.get("pm10"),     row.get("aqi"),
-            row.get("ozone"),       row.get("nitrogen_dioxide"), row.get("sulphur_dioxide"),
+            row.get("pm25"),        row.get("pm10"),              row.get("aqi"),
+            row.get("ozone"),       row.get("nitrogen_dioxide"),  row.get("sulphur_dioxide"),
             row.get("heat_index"),  row.get("pollution_level"),
             row.get("respiratory_stress"), row.get("uv_risk"),
-            row["predicted_category"], row["confidence"],
-            row.get("prob_safe"),   row.get("prob_moderate"), row.get("prob_high_resp"),
+            row["predicted_category"],     row["confidence"],
+            row.get("prob_safe"),   row.get("prob_moderate"),     row.get("prob_high_resp"),
             row.get("prob_mask"),   row.get("prob_avoid"),
         )
-        cursor.execute(UPSERT_SQL, vals_match + vals_update + vals_insert)
+        cursor.execute(UPSERT_SQL, match + update + insert)
         rows_affected += cursor.rowcount
 
     conn.commit()
@@ -202,17 +207,16 @@ def upsert(df: pd.DataFrame) -> None:
     log.info("Upserted %d forecast rows → ForecastPredictions", rows_affected)
 
 
-# ── Entry point ────────────────────────────────────────────────────────────────
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true",
                         help="Print predictions without writing to database")
     args = parser.parse_args()
 
-    model    = load_model()
-    features = load_features()
-    results  = predict(model, features)
+    model        = load_model()
+    feature_cols = load_feature_cols()
+    data         = load_data(feature_cols)
+    results      = predict(model, data, feature_cols)
 
     if args.dry_run:
         log.info("Dry run — skipping database write")

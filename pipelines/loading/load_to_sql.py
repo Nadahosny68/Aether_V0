@@ -1,171 +1,169 @@
-import pandas as pd
-import pyodbc
+"""
+pipelines/loading/load_to_sql.py
+─────────────────────────────────
+Replaces the SSIS package entirely.
+Loads data/processed/environmental_features.csv directly into
+EnvironmentalFeatures table using pyodbc — no SSIS license needed.
+
+Behaviour:
+  - TRUNCATEs EnvironmentalFeatures first (same as SSIS package did)
+  - Bulk inserts all rows from the CSV
+  - Populates DimDate from the new data
+  - Fast: uses executemany for batch insert
+
+Usage:
+    python pipelines/loading/load_to_sql.py
+"""
+
 import os
+import sys
+import pyodbc
+import pandas as pd
+from datetime import datetime
+from dotenv import load_dotenv
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.insert(0, ROOT)
 
-SERVER   = "DESKTOP-Q5KEU1E"
-DATABASE = "AetherDW_V0"
+load_dotenv(os.path.join(ROOT, ".env"))
 
-print("Starting SQL load pipeline...")
+from utils.logger import get_logger
+log = get_logger("load_to_sql")
 
-conn = pyodbc.connect(
-    f"DRIVER={{SQL Server}};"
-    f"SERVER={SERVER};"
-    f"DATABASE={DATABASE};"
-    f"Trusted_Connection=yes;"
-)
-cursor = conn.cursor()
+CSV_PATH = os.path.join(ROOT, "data", "processed", "environmental_features.csv")
 
-df = pd.read_csv(os.path.join(ROOT, "data", "processed", "environmental_features.csv"))
-print(f"  Rows to load: {len(df)}")
-
-
-# ── Helper — safely get value or None ─────────────────────────────────────
-def val(row, col):
-    v = row.get(col)
-    if v is None:
-        return None
-    try:
-        import math
-        if math.isnan(float(v)):
-            return None
-    except (TypeError, ValueError):
-        pass
-    return v
+# All columns that exist in the EnvironmentalFeatures SQL table
+# Must match your DDL exactly — columns not in CSV are skipped safely
+SQL_COLUMNS = [
+    "date", "temperature", "humidity", "wind", "pressure",
+    "cloud_cover", "sunshine_duration",
+    "temp_max", "temp_min", "apparent_temp_max", "apparent_temp_min", "apparent_temp_mean",
+    "humidity_max", "humidity_min", "wind_max", "wind_gust_max",
+    "precipitation", "rain_sum", "dew_point", "shortwave_radiation", "vapour_pressure_deficit",
+    "pm25", "pm10", "aqi", "european_aqi",
+    "ozone", "nitrogen_dioxide", "sulphur_dioxide",
+    "dust", "uv_index", "carbon_monoxide", "aerosol_optical_depth",
+    "heat_index", "pollution_level", "respiratory_stress", "uv_risk",
+    "temp_range", "heat_stress_peak", "dust_risk_index", "rain_wash_effect",
+    "health_category",
+]
 
 
-# ── WeatherMetrics ─────────────────────────────────────────────────────────
-print("Inserting into WeatherMetrics...")
-for _, row in df.iterrows():
-    cursor.execute("""
-        INSERT INTO WeatherMetrics
-            (date, temperature, humidity, wind, pressure,
-            cloud_cover, sunshine_duration, heat_index, source)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """,
-    val(row, "date"),
-    val(row, "temperature"),
-    val(row, "humidity"),
-    val(row, "wind"),
-    val(row, "pressure"),
-    val(row, "cloud_cover"),
-    val(row, "sunshine_duration"),
-    val(row, "heat_index"),
-    "historical"
+def get_connection() -> pyodbc.Connection:
+    server   = os.environ.get("SQL_SERVER",   "DESKTOP-Q5KEU1E")
+    database = os.environ.get("SQL_DATABASE", "AetherDW_V0")
+    driver   = os.environ.get("SQL_DRIVER",   "ODBC Driver 17 for SQL Server")
+    conn_str = (
+        f"DRIVER={{{driver}}};"
+        f"SERVER={server};"
+        f"DATABASE={database};"
+        "Trusted_Connection=yes;"
     )
-conn.commit()
-print(f"  WeatherMetrics: {len(df)} rows inserted.")
+    return pyodbc.connect(conn_str, autocommit=False)
 
 
-# ── PollutionMetrics ───────────────────────────────────────────────────────
-print("Inserting into PollutionMetrics...")
-for _, row in df.iterrows():
-    cursor.execute("""
-        INSERT INTO PollutionMetrics
-            (date, pm25, pm10, aqi, european_aqi,
-            ozone, nitrogen_dioxide, sulphur_dioxide,
-            dust, uv_index, pollution_level, source)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """,
-    val(row, "date"),
-    val(row, "pm25"),
-    val(row, "pm10"),
-    val(row, "aqi"),
-    val(row, "european_aqi"),
-    val(row, "ozone"),
-    val(row, "nitrogen_dioxide"),
-    val(row, "sulphur_dioxide"),
-    val(row, "dust"),
-    val(row, "uv_index"),
-    val(row, "pollution_level"),
-    "historical"
-    )
-conn.commit()
-print(f"  PollutionMetrics: {len(df)} rows inserted.")
-
-
-# ── EnvironmentalFeatures ──────────────────────────────────────────────────
-print("Inserting into EnvironmentalFeatures...")
-for _, row in df.iterrows():
-    cursor.execute("""
-        INSERT INTO EnvironmentalFeatures
-            (date, temperature, humidity, wind, pressure,
-            cloud_cover, sunshine_duration,
-            pm25, pm10, aqi, european_aqi,
-            ozone, nitrogen_dioxide, sulphur_dioxide,
-            dust, uv_index,
-            heat_index, pollution_level,
-            respiratory_stress, uv_risk,
-            health_category, source)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """,
-    val(row, "date"),
-    val(row, "temperature"),
-    val(row, "humidity"),
-    val(row, "wind"),
-    val(row, "pressure"),
-    val(row, "cloud_cover"),
-    val(row, "sunshine_duration"),
-    val(row, "pm25"),
-    val(row, "pm10"),
-    val(row, "aqi"),
-    val(row, "european_aqi"),
-    val(row, "ozone"),
-    val(row, "nitrogen_dioxide"),
-    val(row, "sulphur_dioxide"),
-    val(row, "dust"),
-    val(row, "uv_index"),
-    val(row, "heat_index"),
-    val(row, "pollution_level"),
-    val(row, "respiratory_stress"),
-    val(row, "uv_risk"),
-    val(row, "health_category"),
-    "historical"
-    )
-conn.commit()
-print(f"  EnvironmentalFeatures: {len(df)} rows inserted.")
-
-
-# ── DimDate ────────────────────────────────────────────────────────────────
-print("Populating DimDate...")
-dates = pd.to_datetime(df["date"], errors="coerce").dropna().unique()
-inserted = 0
-for d in dates:
-    try:
-        cursor.execute("""
-            IF NOT EXISTS (SELECT 1 FROM DimDate WHERE date = ?)
-            INSERT INTO DimDate
-                (date, year, month, month_name, quarter,
-                week, day_of_week, is_weekend)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        d.date(),
-        d.date(),
-        d.year,
-        d.month,
-        d.strftime("%B"),
-        (d.month - 1) // 3 + 1,
-        d.isocalendar()[1],
-        d.strftime("%A"),
-        1 if d.weekday() >= 5 else 0
+def load_csv() -> pd.DataFrame:
+    if not os.path.exists(CSV_PATH):
+        raise FileNotFoundError(
+            f"CSV not found: {CSV_PATH}\n"
+            "Run feature_engineering.py first."
         )
-        inserted += 1
-    except Exception:
-        pass
-conn.commit()
-print(f"  DimDate: {inserted} dates inserted.")
+    df = pd.read_csv(CSV_PATH)
+    df["date"] = pd.to_datetime(df["date"], errors="coerce").dt.date
+    df = df.dropna(subset=["date"])
+    log.info("Loaded CSV: %d rows, %d columns", len(df), len(df.columns))
+    return df
 
 
-cursor.close()
-conn.close()
-print("\nSQL loading completed.")
+def truncate_and_insert(df: pd.DataFrame, conn: pyodbc.Connection) -> int:
+    cursor = conn.cursor()
+
+    # Truncate (same behaviour as SSIS package Execute SQL Task)
+    log.info("Truncating EnvironmentalFeatures …")
+    cursor.execute("TRUNCATE TABLE dbo.EnvironmentalFeatures")
+
+    # Determine which SQL columns are actually in the CSV
+    available = [c for c in SQL_COLUMNS if c in df.columns]
+    missing   = [c for c in SQL_COLUMNS if c not in df.columns]
+    if missing:
+        log.warning("Columns in SQL table but not in CSV (will be NULL): %s", missing)
+
+    # Build INSERT statement
+    placeholders = ", ".join(["?"] * len(available))
+    col_list     = ", ".join(available)
+    insert_sql   = f"INSERT INTO dbo.EnvironmentalFeatures ({col_list}) VALUES ({placeholders})"
+
+    # Prepare rows — replace NaN with None so pyodbc writes NULL
+    rows = []
+    for _, row in df.iterrows():
+        values = []
+        for col in available:
+            val = row[col]
+            # Convert numpy/pandas types to Python natives
+            if pd.isna(val):
+                values.append(None)
+            elif hasattr(val, "item"):
+                values.append(val.item())
+            else:
+                values.append(val)
+        rows.append(tuple(values))
+
+    # Batch insert in chunks of 500 for performance
+    chunk_size = 500
+    inserted   = 0
+    for i in range(0, len(rows), chunk_size):
+        chunk = rows[i:i + chunk_size]
+        cursor.executemany(insert_sql, chunk)
+        inserted += len(chunk)
+        log.info("  Inserted %d / %d rows …", inserted, len(rows))
+
+    conn.commit()
+    log.info("EnvironmentalFeatures loaded: %d rows", inserted)
+    return inserted
 
 
+def populate_dimdate(conn: pyodbc.Connection) -> None:
+    """Populates DimDate from EnvironmentalFeatures — same logic as before."""
+    log.info("Populating DimDate …")
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO dbo.DimDate (date, year, month, month_name, quarter, week, day_of_week, is_weekend)
+        SELECT DISTINCT
+            CAST(ef.date AS DATE),
+            YEAR(ef.date),
+            MONTH(ef.date),
+            DATENAME(MONTH, ef.date),
+            DATEPART(QUARTER, ef.date),
+            DATEPART(WEEK, ef.date),
+            DATENAME(WEEKDAY, ef.date),
+            CASE WHEN DATEPART(WEEKDAY, ef.date) IN (1,7) THEN 1 ELSE 0 END
+        FROM dbo.EnvironmentalFeatures ef
+        WHERE ef.date IS NOT NULL
+        AND NOT EXISTS (
+            SELECT 1 FROM dbo.DimDate d WHERE d.date = CAST(ef.date AS DATE)
+        )
+    """)
+    conn.commit()
+    log.info("DimDate populated")
 
-# The `val()` helper function is important — it converts pandas `NaN` values to Python `None` before inserting, 
-# which is what SQL Server expects for nullable columns. 
-# Without it you would get data type errors on every row that has empty pollution fields.
 
-# Run it with:
-# python pipelines/loading/load_to_sql.py
+def run():
+    log.info("Starting SQL load (replaces SSIS) …")
+
+    df   = load_csv()
+    conn = get_connection()
+
+    try:
+        inserted = truncate_and_insert(df, conn)
+        populate_dimdate(conn)
+        log.info("Load completed successfully: %d rows inserted", inserted)
+    except Exception as e:
+        conn.rollback()
+        log.error("Load failed — rolled back: %s", e)
+        raise
+    finally:
+        conn.close()
+
+
+if __name__ == "__main__":
+    run()
