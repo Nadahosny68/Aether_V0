@@ -49,31 +49,31 @@ def aggregate_to_daily(raw: dict) -> list[dict]:
     """
     Collapse 3-hour slots → daily aggregates for the next 3 calendar days.
 
-    Each slot from OWM provides:
-      main.temp        → instantaneous temperature
-      main.temp_max    → max in this 3h window
-      main.temp_min    → min in this 3h window
-      main.humidity    → instantaneous humidity
-      main.pressure    → instantaneous pressure
-      wind.speed       → instantaneous wind speed
-      wind.gust        → wind gust (if present)
-      clouds.all       → cloud cover %
-      rain.3h          → rain in this 3h window (if present)
+Each slot from OWM provides:
+    main.temp        → instantaneous temperature
+    main.temp_max    → max in this 3h window
+    main.temp_min    → min in this 3h window
+    main.humidity    → instantaneous humidity
+    main.pressure    → instantaneous pressure
+    wind.speed       → instantaneous wind speed
+    wind.gust        → wind gust (if present)
+    clouds.all       → cloud cover %
+    rain.3h          → rain in this 3h window (if present)
 
-    We compute:
-      temperature  = mean of all slot temps (daily mean)
-      temp_max     = max of all slot temp_max  (daily peak)
-      temp_min     = min of all slot temp_min  (daily lowest)
-      humidity     = mean of all slot humidity
-      humidity_max = max of all slot humidity
-      humidity_min = min of all slot humidity
-      wind         = mean wind speed (km/h)
-      wind_max     = max wind speed across slots (km/h)
-      wind_gust_max= max gust across slots (km/h)
-      pressure     = mean pressure
-      cloud_cover  = mean cloud cover
-      precipitation= sum of rain.3h across all slots
-      apparent_temp_max = estimated from temp_max (OWM doesn't provide directly)
+We compute:
+    temperature  = mean of all slot temps (daily mean)
+    temp_max     = max of all slot temp_max  (daily peak)
+    temp_min     = min of all slot temp_min  (daily lowest)
+    humidity     = mean of all slot humidity
+    humidity_max = max of all slot humidity
+    humidity_min = min of all slot humidity
+    wind         = mean wind speed (km/h)
+    wind_max     = max wind speed across slots (km/h)
+    wind_gust_max= max gust across slots (km/h)
+    pressure     = mean pressure
+    cloud_cover  = mean cloud cover
+    precipitation= sum of rain.3h across all slots
+    apparent_temp_max = estimated from temp_max (OWM doesn't provide directly)
     """
     today = datetime.now(timezone.utc).date()
     buckets: dict[str, list] = defaultdict(list)

@@ -243,3 +243,10 @@ ORDER BY ORDINAL_POSITION;
 
 SELECT MIN(date), MAX(date), COUNT(*) FROM EnvironmentalFeatures;
 SELECT MIN(date), MAX(date), COUNT(*) FROM RiskPredictions;
+
+
+
+
+-- ── Run in SSMS to remove today's incomplete rows   ─────────────────────────
+DELETE FROM dbo.EnvironmentalFeatures WHERE source = 'api_daily';
+DELETE FROM dbo.RiskPredictions       WHERE date   = CAST(GETDATE() AS DATE);
