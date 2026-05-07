@@ -218,6 +218,33 @@ ORDER BY days DESC;
 
 
 
+
+
+-- ── Creating Schemas ─────────────────────────
+
+CREATE SCHEMA bronze;
+GO
+
+CREATE SCHEMA silver;
+GO
+
+CREATE SCHEMA gold;
+GO
+
+
+ALTER SCHEMA silver TRANSFER dbo.WeatherMetrics;
+ALTER SCHEMA silver TRANSFER dbo.PollutionMetrics;
+
+ALTER SCHEMA gold TRANSFER dbo.DimDate;
+ALTER SCHEMA gold TRANSFER dbo.EnvironmentalFeatures;
+ALTER SCHEMA gold TRANSFER dbo.RiskPredictions;
+ALTER SCHEMA gold TRANSFER dbo.ForecastPredictions;
+
+
+
+
+
+
 -- ── verify tables ─────────────────────────
 
 SELECT
@@ -243,6 +270,8 @@ ORDER BY ORDINAL_POSITION;
 
 SELECT MIN(date), MAX(date), COUNT(*) FROM EnvironmentalFeatures;
 SELECT MIN(date), MAX(date), COUNT(*) FROM RiskPredictions;
+SELECT MIN(date), MAX(date), COUNT(*) FROM DimDate;
+
 
 
 
@@ -250,3 +279,116 @@ SELECT MIN(date), MAX(date), COUNT(*) FROM RiskPredictions;
 -- ── Run in SSMS to remove today's incomplete rows   ─────────────────────────
 DELETE FROM dbo.EnvironmentalFeatures WHERE source = 'api_daily';
 DELETE FROM dbo.RiskPredictions       WHERE date   = CAST(GETDATE() AS DATE);
+
+
+
+SELECT date, source, aqi, pm25, health_category
+FROM EnvironmentalFeatures
+WHERE source = 'api_daily'
+ORDER BY date;
+
+
+SELECT count (*)
+FROM EnvironmentalFeatures 
+WHERE health_category = 'Moderate Risk Day'
+
+
+-- ── Run to confirm what's actually in the table:   ─────────────────────────
+ 
+
+SELECT date, source, aqi, pm25, health_category
+FROM dbo.EnvironmentalFeatures
+WHERE source = 'api_daily'
+ORDER BY date;
+
+select *
+from EnvironmentalFeatures
+WHERE source = 'api_daily'
+
+-- Check if source column is actually being set
+SELECT TOP 5 date, source, temperature, aqi
+FROM dbo.EnvironmentalFeatures
+ORDER BY date DESC;
+
+
+
+-- ── Run to confirm Date:   ─────────────────────────
+
+-- Find the problematic records
+SELECT DISTINCT ef.date
+FROM EnvironmentalFeatures ef
+LEFT JOIN DimDate d
+    ON ef.date = d.date
+WHERE d.date IS NULL;
+
+
+-- Example: insert missing dates
+INSERT INTO DimDate (date)
+SELECT DISTINCT ef.date
+FROM EnvironmentalFeatures ef
+LEFT JOIN DimDate d
+    ON ef.date = d.date
+WHERE d.date IS NULL;
+
+-- Find the problematic records
+SELECT DISTINCT fp.forecast_date
+FROM ForecastPredictions fp
+LEFT JOIN DimDate d
+    ON fp.forecast_date = d.date
+WHERE d.date IS NULL;
+
+-- Example: insert missing dates
+
+INSERT INTO DimDate (date)
+SELECT DISTINCT fp.forecast_date
+FROM ForecastPredictions fp
+LEFT JOIN DimDate d
+    ON fp.forecast_date = d.date
+WHERE d.date IS NULL;
+
+
+
+
+
+
+
+-- ──-- -- Rebuild DimDate to cover a wide range:  ─────────────────────────
+-- Example: 2000 → 2035
+DECLARE @StartDate DATE = '2000-01-01';
+DECLARE @EndDate DATE = '2035-12-31';
+
+WHILE @StartDate <= @EndDate
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM DimDate WHERE date = @StartDate)
+    BEGIN
+        INSERT INTO DimDate (date)
+        VALUES (@StartDate);
+    END
+
+    SET @StartDate = DATEADD(DAY, 1, @StartDate);
+END;
+
+
+
+
+
+
+
+
+-- ──-- Keep only most recent forecast per date+horizon, delete older ones   ─────────────────────────
+WITH CTE AS (
+    SELECT *,
+    ROW_NUMBER() OVER (
+        PARTITION BY forecast_date, forecast_horizon
+        ORDER BY generated_at DESC
+    ) AS rn
+    FROM Gold.ForecastPredictions
+)
+DELETE FROM CTE WHERE rn > 1;
+
+-- Verify
+SELECT forecast_date, forecast_horizon, COUNT(*) as cnt
+FROM Gold.ForecastPredictions
+GROUP BY forecast_date, forecast_horizon
+HAVING COUNT(*) > 1;
+-- Should return 0 rows

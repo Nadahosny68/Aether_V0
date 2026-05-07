@@ -6,10 +6,10 @@ Loads data/processed/environmental_features.csv directly into
 EnvironmentalFeatures table using pyodbc — no SSIS license needed.
 
 Behaviour:
-  - TRUNCATEs EnvironmentalFeatures first (same as SSIS package did)
-  - Bulk inserts all rows from the CSV
-  - Populates DimDate from the new data
-  - Fast: uses executemany for batch insert
+- TRUNCATEs EnvironmentalFeatures first (same as SSIS package did)
+- Bulk inserts all rows from the CSV
+- Populates DimDate from the new data
+- Fast: uses executemany for batch insert
 
 Usage:
     python pipelines/loading/load_to_sql.py
@@ -78,9 +78,9 @@ def load_csv() -> pd.DataFrame:
 def truncate_and_insert(df: pd.DataFrame, conn: pyodbc.Connection) -> int:
     cursor = conn.cursor()
 
-    # Truncate (same behaviour as SSIS package Execute SQL Task)
-    log.info("Truncating EnvironmentalFeatures …")
-    cursor.execute("TRUNCATE TABLE dbo.EnvironmentalFeatures")
+    # NEW — only deletes rows loaded from CSV, preserves live api_daily rows
+    log.info("deletes rows loaded from CSV in EnvironmentalFeatures …")
+    cursor.execute("DELETE FROM Gold.EnvironmentalFeatures WHERE source IS NULL OR source != 'api_daily'")
 
     # Determine which SQL columns are actually in the CSV
     available = [c for c in SQL_COLUMNS if c in df.columns]
@@ -91,7 +91,7 @@ def truncate_and_insert(df: pd.DataFrame, conn: pyodbc.Connection) -> int:
     # Build INSERT statement
     placeholders = ", ".join(["?"] * len(available))
     col_list     = ", ".join(available)
-    insert_sql   = f"INSERT INTO dbo.EnvironmentalFeatures ({col_list}) VALUES ({placeholders})"
+    insert_sql   = f"INSERT INTO Gold.EnvironmentalFeatures ({col_list}) VALUES ({placeholders})"
 
     # Prepare rows — replace NaN with None so pyodbc writes NULL
     rows = []
@@ -127,7 +127,7 @@ def populate_dimdate(conn: pyodbc.Connection) -> None:
     log.info("Populating DimDate …")
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO dbo.DimDate (date, year, month, month_name, quarter, week, day_of_week, is_weekend)
+        INSERT INTO Gold.DimDate (date, year, month, month_name, quarter, week, day_of_week, is_weekend)
         SELECT DISTINCT
             CAST(ef.date AS DATE),
             YEAR(ef.date),
@@ -137,10 +137,10 @@ def populate_dimdate(conn: pyodbc.Connection) -> None:
             DATEPART(WEEK, ef.date),
             DATENAME(WEEKDAY, ef.date),
             CASE WHEN DATEPART(WEEKDAY, ef.date) IN (1,7) THEN 1 ELSE 0 END
-        FROM dbo.EnvironmentalFeatures ef
+        FROM Gold.EnvironmentalFeatures ef
         WHERE ef.date IS NOT NULL
         AND NOT EXISTS (
-            SELECT 1 FROM dbo.DimDate d WHERE d.date = CAST(ef.date AS DATE)
+            SELECT 1 FROM Gold.DimDate d WHERE d.date = CAST(ef.date AS DATE)
         )
     """)
     conn.commit()

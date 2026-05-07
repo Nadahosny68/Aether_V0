@@ -4,9 +4,9 @@ pipelines/transformation/data_cleaning.py
 Cleans historical weather and pollution CSVs.
 
 Root cause of 0 pollution rows — fixed here:
-  The format="%y/%m/%d" and dayfirst=True attempts both converted
-  every "2022-08-01" date to NaT because they forced the wrong
-  interpretation. The date is plain ISO — no format override needed.
+The format="%y/%m/%d" and dayfirst=True attempts both converted
+every "2022-08-01" date to NaT because they forced the wrong
+interpretation. The date is plain ISO — no format override needed.
 
 Weather date:    "2000-01-01 00:00:00+00:00" → strip timezone → date
 Pollution date:  "2022-08-01" → standard ISO parse → date

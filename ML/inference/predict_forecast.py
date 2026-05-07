@@ -5,7 +5,7 @@ Loads the trained model and runs inference on forecast_features.csv,
 then upserts results into ForecastPredictions.
 
 Fixed: UPSERT now includes temp_range, heat_stress_peak,
-       dust_risk_index, rain_wash_effect in both UPDATE and INSERT.
+    dust_risk_index, rain_wash_effect in both UPDATE and INSERT.
 """
 
 import os
@@ -108,40 +108,101 @@ def get_connection() -> pyodbc.Connection:
 
 # ── FIXED UPSERT: now includes all 4 new v2 columns ──────────────────────────
 UPSERT_SQL = """
-MERGE dbo.ForecastPredictions AS target
-USING (VALUES (?, ?, ?, ?)) AS src
-    (forecast_date, forecast_horizon, model_version, generated_at)
+MERGE Gold.ForecastPredictions AS target
+USING (VALUES (?, ?)) AS src
+    (forecast_date, forecast_horizon)
+
 ON  target.forecast_date    = src.forecast_date
 AND target.forecast_horizon = src.forecast_horizon
-AND target.model_version    = src.model_version
+
 WHEN MATCHED THEN UPDATE SET
     generated_at        = ?,
-    temperature         = ?, humidity           = ?, wind              = ?,
-    pressure            = ?, cloud_cover        = ?,
-    pm25                = ?, pm10               = ?, aqi               = ?,
-    ozone               = ?, nitrogen_dioxide   = ?, sulphur_dioxide   = ?,
-    heat_index          = ?, pollution_level    = ?,
-    respiratory_stress  = ?, uv_risk            = ?,
-    predicted_category  = ?, confidence         = ?,
-    prob_safe           = ?, prob_moderate      = ?, prob_high_resp    = ?,
-    prob_mask           = ?, prob_avoid         = ?,
-    temp_range          = ?, heat_stress_peak   = ?,
-    dust_risk_index     = ?, rain_wash_effect   = ?
+    model_version       = ?,
+
+    temperature         = ?,
+    humidity            = ?,
+    wind                = ?,
+    pressure            = ?,
+    cloud_cover         = ?,
+
+    pm25                = ?,
+    pm10                = ?,
+    aqi                 = ?,
+    ozone               = ?,
+    nitrogen_dioxide    = ?,
+    sulphur_dioxide     = ?,
+
+    heat_index          = ?,
+    pollution_level     = ?,
+    respiratory_stress  = ?,
+    uv_risk             = ?,
+
+    predicted_category  = ?,
+    confidence          = ?,
+
+    prob_safe           = ?,
+    prob_moderate       = ?,
+    prob_high_resp      = ?,
+    prob_mask           = ?,
+    prob_avoid          = ?,
+
+    temp_range          = ?,
+    heat_stress_peak    = ?,
+    dust_risk_index     = ?,
+    rain_wash_effect    = ?
+
 WHEN NOT MATCHED THEN INSERT (
-    forecast_date, forecast_horizon, generated_at, model_version,
-    temperature, humidity, wind, pressure, cloud_cover,
-    pm25, pm10, aqi, ozone, nitrogen_dioxide, sulphur_dioxide,
-    heat_index, pollution_level, respiratory_stress, uv_risk,
-    predicted_category, confidence,
-    prob_safe, prob_moderate, prob_high_resp, prob_mask, prob_avoid,
-    temp_range, heat_stress_peak, dust_risk_index, rain_wash_effect
+    forecast_date,
+    forecast_horizon,
+    generated_at,
+    model_version,
+
+    temperature,
+    humidity,
+    wind,
+    pressure,
+    cloud_cover,
+
+    pm25,
+    pm10,
+    aqi,
+    ozone,
+    nitrogen_dioxide,
+    sulphur_dioxide,
+
+    heat_index,
+    pollution_level,
+    respiratory_stress,
+    uv_risk,
+
+    predicted_category,
+    confidence,
+
+    prob_safe,
+    prob_moderate,
+    prob_high_resp,
+    prob_mask,
+    prob_avoid,
+
+    temp_range,
+    heat_stress_peak,
+    dust_risk_index,
+    rain_wash_effect
+
 ) VALUES (
+
     ?, ?, ?, ?,
+
     ?, ?, ?, ?, ?,
+
     ?, ?, ?, ?, ?, ?,
+
     ?, ?, ?, ?,
+
     ?, ?,
+
     ?, ?, ?, ?, ?,
+
     ?, ?, ?, ?
 );
 """
@@ -167,10 +228,14 @@ def upsert(df: pd.DataFrame) -> None:
     rows_affected = 0
 
     for _, row in df.iterrows():
-        match  = (str(row["date"]), int(row["horizon"]), MODEL_VERSION, now)
+        match = (
+    str(row["date"]),
+    int(row["horizon"])
+)
 
         update = (
-            now,
+        now,
+        MODEL_VERSION,
             g(row,"temperature"), g(row,"humidity"),         g(row,"wind"),
             g(row,"pressure"),    g(row,"cloud_cover"),
             g(row,"pm25"),        g(row,"pm10"),              g(row,"aqi"),

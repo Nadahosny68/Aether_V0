@@ -163,7 +163,7 @@ def classify_health(row: dict) -> str:
 def already_in_ef(conn, today: str) -> bool:
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT COUNT(*) FROM dbo.EnvironmentalFeatures "
+        "SELECT COUNT(*) FROM Gold.EnvironmentalFeatures "
         "WHERE date = ? AND source = 'api_daily'",
         today
     )
@@ -177,7 +177,7 @@ def insert_ef(conn, row: dict) -> None:
 
     cols = list(row.keys())
     sql  = (
-        f"INSERT INTO dbo.EnvironmentalFeatures "
+        f"INSERT INTO Gold.EnvironmentalFeatures "
         f"({', '.join(cols)}) "
         f"VALUES ({', '.join(['?'] * len(cols))})"
     )
@@ -220,7 +220,7 @@ def run_ml_prediction(row: dict) -> tuple:
 def already_in_rp(conn, today: str) -> bool:
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT COUNT(*) FROM dbo.RiskPredictions WHERE date = ?", today
+        "SELECT COUNT(*) FROM Gold.RiskPredictions WHERE date = ?", today
     )
     return cursor.fetchone()[0] > 0
 
@@ -228,7 +228,7 @@ def already_in_rp(conn, today: str) -> bool:
 def insert_rp(conn, row: dict, category: str, confidence: float) -> None:
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO RiskPredictions
+        INSERT INTO Gold.RiskPredictions
             (date, temperature, humidity, wind, heat_index,
             pm25, pm10, aqi, pollution_level, respiratory_stress, uv_risk,
             temp_range, heat_stress_peak, dust_risk_index, rain_wash_effect,

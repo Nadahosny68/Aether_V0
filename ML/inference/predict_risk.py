@@ -67,10 +67,10 @@ conn = pyodbc.connect(
 # ── Load new rows only ─────────────────────────────────────────────────────
 query = """
     SELECT ef.*
-    FROM EnvironmentalFeatures ef
+    FROM Gold.EnvironmentalFeatures ef
     WHERE ef.date IS NOT NULL
     AND NOT EXISTS (
-        SELECT 1 FROM RiskPredictions rp
+        SELECT 1 FROM Gold.RiskPredictions rp
         WHERE rp.date = ef.date
     )
 """
@@ -112,7 +112,7 @@ inserted = 0
 
 for _, row in df.iterrows():
     cursor.execute("""
-        INSERT INTO RiskPredictions
+        INSERT INTO Gold.RiskPredictions
             (date, temperature, humidity, wind, heat_index,
             pm25, pm10, aqi, pollution_level,
             respiratory_stress, uv_risk,
