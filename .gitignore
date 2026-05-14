@@ -43,3 +43,4 @@ __pycache__/
 logs/
 *.log
 data/raw/
+.streamlit/secrets.toml

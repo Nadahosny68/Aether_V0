@@ -20,28 +20,24 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ── Auto-detect environment ───────────────────────────────────────────────────
-IS_AZURE = os.getenv("WEBSITE_SITE_NAME") is not None  # Azure sets this automatically
-
+# ── Connection — reads from Streamlit secrets ─────────────────────────────────
 @st.cache_resource
 def get_conn():
-    if IS_AZURE:
-        conn_str = (
-            f"Driver={{ODBC Driver 18 for SQL Server}};"
-            f"Server=tcp:{os.getenv('AZURE_SQL_SERVER')},1433;"
-            f"Database={os.getenv('AZURE_SQL_DATABASE')};"
-            f"Uid={os.getenv('AZURE_SQL_USER')};"
-            f"Pwd={os.getenv('AZURE_SQL_PASSWORD')};"
-            "Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
-        )
-    else:
-        conn_str = (
-            f"Driver={{{os.getenv('SQL_DRIVER')}}};"
-            f"Server={os.getenv('SQL_SERVER')};"
-            f"Database={os.getenv('SQL_DATABASE')};"
-            "Trusted_Connection=yes;TrustServerCertificate=yes;"
-        )
+    conn_str = (
+        f"Driver={{ODBC Driver 18 for SQL Server}};"
+        f"Server=tcp:{st.secrets['AZURE_SQL_SERVER']},1433;"
+        f"Database={st.secrets['AZURE_SQL_DATABASE']};"
+        f"Uid={st.secrets['AZURE_SQL_USER']};"
+        f"Pwd={st.secrets['AZURE_SQL_PASSWORD']};"
+        "Encrypt=yes;"
+        "TrustServerCertificate=no;"
+        "Connection Timeout=30;"
+    )
     return pyodbc.connect(conn_str)
+
+@st.cache_data(ttl=300)
+def query(sql):
+    return pd.read_sql(sql, get_conn())
 
 # ── Health category colors ────────────────────────────────────────────────────
 COLORS = {
