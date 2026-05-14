@@ -32,3 +32,14 @@ logs/
 .vs/
 bin/
 obj/
+
+
+.env
+venv/
+__pycache__/
+*.pyc
+*.pkl
+*.joblib
+logs/
+*.log
+data/raw/

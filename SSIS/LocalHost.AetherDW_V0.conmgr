@@ -1,0 +1,12 @@
+﻿<?xml version="1.0"?>
+<DTS:ConnectionManager xmlns:DTS="www.microsoft.com/SqlServer/Dts"
+  DTS:ObjectName="LocalHost.AetherDW_V0"
+  DTS:DTSID="{82F2FAC7-E07E-4FE3-A231-63E5158F71DF}"
+  DTS:CreationName="OLEDB">
+  <DTS:ObjectData>
+    <DTS:ConnectionManager
+      DTS:ConnectRetryCount="1"
+      DTS:ConnectRetryInterval="5"
+      DTS:ConnectionString="Data Source=.;Initial Catalog=AetherDW_V0;Provider=SQLNCLI11.1;Integrated Security=SSPI;Application Name=SSIS-AetherSSIS-{82F2FAC7-E07E-4FE3-A231-63E5158F71DF}LocalHost.AetherDW_V0;Auto Translate=False;" />
+  </DTS:ObjectData>
+</DTS:ConnectionManager>
