@@ -40,13 +40,16 @@ def get_secret(key):
 
 @st.cache_resource
 def get_conn():
+    # Pulling credentials from the Secrets you just set up
     conn_str = (
-        f"Driver={{ODBC Driver 18 for SQL Server}};"
-        f"Server=tcp:{get_secret('AZURE_SQL_SERVER')},1433;"
-        f"Database={get_secret('AZURE_SQL_DATABASE')};"
-        f"Uid={get_secret('AZURE_SQL_USER')};"
-        f"Pwd={get_secret('AZURE_SQL_PASSWORD')};"
-        "Encrypt=yes;TrustServerCertificate=no;Connection Timeout=120;"
+        f"DRIVER={{{st.secrets['DRIVER']}}};"
+        f"SERVER={st.secrets['SERVER']};"
+        f"DATABASE={st.secrets['DATABASE']};"
+        f"UID={st.secrets['USERNAME']};"
+        f"PWD={st.secrets['PASSWORD']};"
+        "Encrypt=yes;"
+        "TrustServerCertificate=no;"
+        "Connection Timeout=30;"
     )
     return pyodbc.connect(conn_str)
 
