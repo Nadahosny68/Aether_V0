@@ -1,1 +1,10 @@
-# CORE DATApandas==2.2.2numpy==1.26.4# DATABASE (Critical for Azure)pyodbc==5.1.0sqlalchemy==2.0.30# DASHBOARD & VIZstreamlit==1.35.0plotly==5.22.0# ENVIRONMENTpython-dotenv==1.0.1
+streamlit
+pandas
+numpy
+plotly
+sqlalchemy
+pymssql
+python-dotenv
+scikit-learn
+joblib
+requests
