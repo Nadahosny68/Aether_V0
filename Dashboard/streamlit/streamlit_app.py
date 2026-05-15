@@ -58,7 +58,6 @@ def get_secret(key):
 # ══════════════════════════════════════════════════════════════════════════════
 # 4. DATABASE — no cache, handles serverless wake-up
 # ══════════════════════════════════════════════════════════════════════════════
-from sqlalchemy import create_engine
 import urllib
 
 def get_engine():
