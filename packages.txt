@@ -1,5 +1,2 @@
-unixodbc-dev
-zlib1g-dev
-unixodbc
-odbcinst
-libodbc1
+freetds-dev
+
