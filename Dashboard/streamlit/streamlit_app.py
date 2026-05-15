@@ -47,7 +47,6 @@ def fmt(val):
         return "N/A"
 
 def get_secret(key):
-    """Read from st.secrets[database] → st.secrets → os.getenv fallback."""
     try:
         return st.secrets["database"][key]
     except Exception:
@@ -57,7 +56,7 @@ def get_secret(key):
             return os.getenv(key)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 4. DATABASE CONNECTION  (no cache — required for serverless wake-up)
+# 4. DATABASE — no cache, handles serverless wake-up
 # ══════════════════════════════════════════════════════════════════════════════
 def get_conn():
     conn_str = (
@@ -78,15 +77,14 @@ def run_query(sql):
         df   = pd.read_sql(sql, conn)
         conn.close()
         return df
-    except Exception:
+    except Exception as e:
+        st.error(f"❌ DB Error: {e}")
         return pd.DataFrame()
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 5. SIDEBAR
 # ══════════════════════════════════════════════════════════════════════════════
-st.sidebar.image(
-    "https://img.icons8.com/fluency/96/wind.png", width=55
-)
+st.sidebar.image("https://img.icons8.com/fluency/96/wind.png", width=55)
 st.sidebar.title("AETHER")
 st.sidebar.caption("Environmental Health Intelligence — Cairo, Egypt")
 st.sidebar.divider()
@@ -135,17 +133,13 @@ start_date, end_date = (
 )
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 7. LOAD MAIN DATA
+# 7. LOAD MAIN DATA  ← this was missing before
 # ══════════════════════════════════════════════════════════════════════════════
-def run_query(sql):
-    try:
-        conn = get_conn()
-        df   = pd.read_sql(sql, conn)
-        conn.close()
-        return df
-    except Exception as e:
-        st.error(f"❌ DB Error: {e}")
-        return pd.DataFrame()
+df = run_query(f"""
+    SELECT * FROM Gold.EnvironmentalFeatures
+    WHERE date BETWEEN '{start_date}' AND '{end_date}'
+    ORDER BY date
+""")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE 1 — HOME
@@ -161,20 +155,17 @@ if page == "🏠 Home":
 
     latest = df.iloc[-1]
 
-    # ── KPI row ───────────────────────────────────────────────────────────────
     c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric(
-        "📅 Date",
+    c1.metric("📅 Date",
         str(latest['date'].date() if hasattr(latest['date'], 'date') else latest['date'])
     )
-    c2.metric("💨 AQI",           fmt(latest['aqi']))
-    c3.metric("🌫️ PM2.5",         fmt(latest['pm25']))
-    c4.metric("🌡️ Temperature",   f"{fmt(latest['temperature'])} °C")
-    c5.metric("🔥 Heat Index",    fmt(latest['heat_index']))
+    c2.metric("💨 AQI",          fmt(latest['aqi']))
+    c3.metric("🌫️ PM2.5",        fmt(latest['pm25']))
+    c4.metric("🌡️ Temperature",  f"{fmt(latest['temperature'])} °C")
+    c5.metric("🔥 Heat Index",   fmt(latest['heat_index']))
 
     st.divider()
 
-    # ── Health banner ─────────────────────────────────────────────────────────
     cat   = latest['health_category'] if pd.notna(latest['health_category']) else "Unknown"
     color = COLORS.get(cat, "#95a5a6")
     st.markdown(f"""
@@ -184,26 +175,20 @@ if page == "🏠 Home":
     """, unsafe_allow_html=True)
 
     st.divider()
-
-    # ── Recommendation ────────────────────────────────────────────────────────
     st.info(RECOMMENDATIONS.get(cat, "Monitor conditions closely."))
 
-    # ── AQI trend ─────────────────────────────────────────────────────────────
     st.subheader("AQI Trend — Last 30 Days")
-    fig = px.area(
-        df.tail(30), x="date", y="aqi",
-        color_discrete_sequence=["#3498db"]
-    )
+    fig = px.area(df.tail(30), x="date", y="aqi",
+                  color_discrete_sequence=["#3498db"])
     fig.update_layout(height=280, margin=dict(l=0, r=0, t=0, b=0))
     st.plotly_chart(fig, use_container_width=True)
 
-    # ── Extra KPI row ─────────────────────────────────────────────────────────
     st.divider()
     k1, k2, k3, k4 = st.columns(4)
-    k1.metric("💧 Humidity",         f"{fmt(latest['humidity'])} %")
-    k2.metric("🌬️ Wind Speed",       f"{fmt(latest['wind'])} km/h")
+    k1.metric("💧 Humidity",          f"{fmt(latest['humidity'])} %")
+    k2.metric("🌬️ Wind Speed",        f"{fmt(latest['wind'])} km/h")
     k3.metric("🧪 Respiratory Stress", fmt(latest['respiratory_stress']))
-    k4.metric("🌫️ Pollution Level",   fmt(latest['pollution_level']))
+    k4.metric("🌫️ Pollution Level",    fmt(latest['pollution_level']))
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE 2 — ENVIRONMENTAL OVERVIEW
@@ -212,61 +197,52 @@ elif page == "🌿 Environmental Overview":
     st.title("🌿 Environmental Overview")
     st.divider()
 
-    # ── Row 1: AQI + PM2.5 ───────────────────────────────────────────────────
     c1, c2 = st.columns(2)
     with c1:
         st.subheader("AQI Over Time")
-        fig = px.line(df, x="date", y="aqi", color_discrete_sequence=["#e74c3c"])
+        fig = px.line(df, x="date", y="aqi",
+                      color_discrete_sequence=["#e74c3c"])
         fig.update_layout(height=300, margin=dict(l=0, r=0, t=0, b=0))
         st.plotly_chart(fig, use_container_width=True)
     with c2:
         st.subheader("PM2.5 Over Time")
-        fig = px.line(df, x="date", y="pm25", color_discrete_sequence=["#e67e22"])
+        fig = px.line(df, x="date", y="pm25",
+                      color_discrete_sequence=["#e67e22"])
         fig.update_layout(height=300, margin=dict(l=0, r=0, t=0, b=0))
         st.plotly_chart(fig, use_container_width=True)
 
-    # ── Row 2: Temperature + Donut ────────────────────────────────────────────
     c3, c4 = st.columns(2)
     with c3:
         st.subheader("Temperature vs Heat Index")
         fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=df['date'], y=df['temperature'],
-            name='Temperature', line=dict(color='#f39c12')
-        ))
-        fig.add_trace(go.Scatter(
-            x=df['date'], y=df['heat_index'],
-            name='Heat Index', line=dict(color='#e74c3c')
-        ))
+        fig.add_trace(go.Scatter(x=df['date'], y=df['temperature'],
+                                 name='Temperature', line=dict(color='#f39c12')))
+        fig.add_trace(go.Scatter(x=df['date'], y=df['heat_index'],
+                                 name='Heat Index', line=dict(color='#e74c3c')))
         fig.update_layout(height=300, margin=dict(l=0, r=0, t=0, b=0))
         st.plotly_chart(fig, use_container_width=True)
     with c4:
         st.subheader("Health Category Distribution")
         cat_counts = df['health_category'].value_counts().reset_index()
         cat_counts.columns = ['category', 'count']
-        fig = px.pie(
-            cat_counts, names='category', values='count',
-            color='category', color_discrete_map=COLORS, hole=0.45
-        )
+        fig = px.pie(cat_counts, names='category', values='count',
+                     color='category', color_discrete_map=COLORS, hole=0.45)
         fig.update_layout(height=300, margin=dict(l=0, r=0, t=0, b=0))
         st.plotly_chart(fig, use_container_width=True)
 
-    # ── Row 3: Monthly AQI bar ────────────────────────────────────────────────
     st.subheader("Monthly Average AQI")
     df_m          = df.copy()
     df_m['month'] = pd.to_datetime(df_m['date']).dt.to_period('M').astype(str)
     monthly       = df_m.groupby('month')['aqi'].mean().reset_index()
-    fig = px.bar(monthly, x='month', y='aqi', color_discrete_sequence=["#3498db"])
+    fig = px.bar(monthly, x='month', y='aqi',
+                 color_discrete_sequence=["#3498db"])
     fig.update_layout(height=300, margin=dict(l=0, r=0, t=30, b=0))
     st.plotly_chart(fig, use_container_width=True)
 
-    # ── Row 4: Pollution scatter ──────────────────────────────────────────────
     st.subheader("PM2.5 vs Ozone Relationship")
-    fig = px.scatter(
-        df, x="pm25", y="ozone",
-        color="health_category", color_discrete_map=COLORS,
-        opacity=0.6, size_max=8
-    )
+    fig = px.scatter(df, x="pm25", y="ozone",
+                     color="health_category", color_discrete_map=COLORS,
+                     opacity=0.6)
     fig.update_layout(height=320, margin=dict(l=0, r=0, t=0, b=0))
     st.plotly_chart(fig, use_container_width=True)
 
@@ -301,34 +277,27 @@ elif page == "🫁 Health Intelligence":
             st.caption(f"Predicted at: {lp['predicted_at']}")
         else:
             st.info("No predictions available.")
-
     with c2:
         st.subheader("Prediction History")
         st.dataframe(preds, use_container_width=True, height=300)
 
-    # ── Respiratory stress scatter ─────────────────────────────────────────────
     st.subheader("Respiratory Stress vs AQI")
-    fig = px.scatter(
-        df, x="aqi", y="respiratory_stress",
-        color="health_category", color_discrete_map=COLORS, opacity=0.65
-    )
+    fig = px.scatter(df, x="aqi", y="respiratory_stress",
+                     color="health_category", color_discrete_map=COLORS,
+                     opacity=0.65)
     fig.update_layout(height=350, margin=dict(l=0, r=0, t=0, b=0))
     st.plotly_chart(fig, use_container_width=True)
 
-    # ── Monthly risk breakdown ────────────────────────────────────────────────
     st.subheader("Monthly Health Risk Breakdown")
     df_r          = df.copy()
     df_r['month'] = pd.to_datetime(df_r['date']).dt.to_period('M').astype(str)
     risk_monthly  = (
         df_r.groupby(['month', 'health_category'])
-            .size()
-            .reset_index(name='count')
+            .size().reset_index(name='count')
     )
-    fig = px.bar(
-        risk_monthly, x='month', y='count',
-        color='health_category', color_discrete_map=COLORS,
-        barmode='stack'
-    )
+    fig = px.bar(risk_monthly, x='month', y='count',
+                 color='health_category', color_discrete_map=COLORS,
+                 barmode='stack')
     fig.update_layout(height=320, margin=dict(l=0, r=0, t=30, b=0))
     st.plotly_chart(fig, use_container_width=True)
 
@@ -350,11 +319,9 @@ elif page == "🔮 Forecasts":
         st.warning("No forecast data available yet.")
         st.stop()
 
-    # ── 7-day cards ───────────────────────────────────────────────────────────
     st.subheader("7-Day Outlook")
     upcoming = forecasts.head(7)
     cols     = st.columns(min(len(upcoming), 7))
-
     for i, (_, row) in enumerate(upcoming.iterrows()):
         with cols[i % 7]:
             cat   = row['predicted_category']
@@ -377,17 +344,12 @@ elif page == "🔮 Forecasts":
             """, unsafe_allow_html=True)
 
     st.divider()
-
-    # ── Confidence chart ──────────────────────────────────────────────────────
     st.subheader("Forecast Confidence Over Time")
-    fig = px.bar(
-        forecasts, x="forecast_date", y="confidence",
-        color="predicted_category", color_discrete_map=COLORS
-    )
+    fig = px.bar(forecasts, x="forecast_date", y="confidence",
+                 color="predicted_category", color_discrete_map=COLORS)
     fig.update_layout(height=320, margin=dict(l=0, r=0, t=0, b=0))
     st.plotly_chart(fig, use_container_width=True)
 
-    # ── Full table ────────────────────────────────────────────────────────────
     st.subheader("Full Forecast Log")
     st.dataframe(forecasts, use_container_width=True)
 
