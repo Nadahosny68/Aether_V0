@@ -65,15 +65,13 @@ def get_engine():
     database = get_secret('DATABASE')
     username = get_secret('USERNAME')
     password = get_secret('PASSWORD')
-    # pymssql — no ODBC driver needed, works on Linux
     return create_engine(
         f"mssql+pymssql://{username}:{password}@{server}/{database}"
     )
 
 def run_query(sql):
     try:
-        engine = get_engine()
-        df = pd.read_sql(sql, engine)
+        df = pd.read_sql(sql, get_engine())
         return df
     except Exception as e:
         st.error(f"❌ DB Error: {e}")
