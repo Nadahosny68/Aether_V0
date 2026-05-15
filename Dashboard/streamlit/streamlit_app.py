@@ -1,18 +1,15 @@
-
-# streamlit run Dashboard/streamlit/streamlit_app.py
-
-
 import streamlit as st
 import pandas as pd
 import pyodbc
 import os
-from dotenv import load_dotenv
 import plotly.express as px
 import plotly.graph_objects as go
+from datetime import datetime
+from dotenv import load_dotenv
 
 load_dotenv()
 
-# ── Page config ───────────────────────────────────────────────────────────────
+# ── 1. PAGE CONFIG & STYLING ──────────────────────────────────────────────────
 st.set_page_config(
     page_title="AETHER",
     page_icon="🌍",
@@ -20,282 +17,168 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ── Connection — reads from Streamlit secrets ─────────────────────────────────
+COLORS = {
+    "Safe Air Day":                "#2ecc71",
+    "Moderate Risk Day":           "#f1c40f",
+    "High Respiratory Risk Day":   "#e67e22",
+    "Mask Recommended Day":        "#e74c3c",
+    "Avoid Outdoor Activity Day":  "#8e44ad",
+}
+
+# ── 2. ROBUST CONNECTION LOGIC ────────────────────────────────────────────────
+def get_secret(key):
+    try: return st.secrets[key]
+    except: return os.getenv(key)
+
 @st.cache_resource
 def get_conn():
+    """High timeout connection to handle Azure Serverless 'Wake-up' time."""
     conn_str = (
         f"Driver={{ODBC Driver 18 for SQL Server}};"
-        f"Server=tcp:{st.secrets['AZURE_SQL_SERVER']},1433;"
-        f"Database={st.secrets['AZURE_SQL_DATABASE']};"
-        f"Uid={st.secrets['AZURE_SQL_USER']};"
-        f"Pwd={st.secrets['AZURE_SQL_PASSWORD']};"
-        "Encrypt=yes;"
-        "TrustServerCertificate=no;"
-        "Connection Timeout=30;"
+        f"Server=tcp:{get_secret('AZURE_SQL_SERVER')},1433;"
+        f"Database={get_secret('AZURE_SQL_DATABASE')};"
+        f"Uid={get_secret('AZURE_SQL_USER')};"
+        f"Pwd={get_secret('AZURE_SQL_PASSWORD')};"
+        "Encrypt=yes;TrustServerCertificate=yes;Connection Timeout=120;"
     )
     return pyodbc.connect(conn_str)
 
 @st.cache_data(ttl=300)
-def query(sql):
-    return pd.read_sql(sql, get_conn())
+def run_query(sql):
+    with get_conn() as conn:
+        return pd.read_sql(sql, conn)
 
-# ── Health category colors ────────────────────────────────────────────────────
-COLORS = {
-    "Safe Air Day":               "#2ecc71",
-    "Moderate Risk Day":          "#f1c40f",
-    "High Respiratory Risk Day":  "#e67e22",
-    "Mask Recommended Day":       "#e74c3c",
-    "Avoid Outdoor Activity Day": "#8e44ad",
-}
-
-# ── Sidebar ───────────────────────────────────────────────────────────────────
+# ── 3. SIDEBAR & NAVIGATION ───────────────────────────────────────────────────
 st.sidebar.image("https://img.icons8.com/fluency/96/wind.png", width=60)
 st.sidebar.title("AETHER")
 st.sidebar.caption("Environmental Health Intelligence")
+
+if st.sidebar.button("🔄 Force Refresh / Wake DB"):
+    st.cache_data.clear()
+    st.rerun()
 
 page = st.sidebar.radio(
     "Navigate",
     ["🏠 Home", "🌿 Environmental Overview", "🫁 Health Intelligence", "🔮 Forecasts"]
 )
 
-st.sidebar.divider()
+# ── 4. DB AVAILABILITY & DATE FILTER ─────────────────────────────────────────
+def get_date_bounds():
+    try:
+        df_dates = run_query("SELECT MIN(date) as mn, MAX(date) as mx FROM Gold.EnvironmentalFeatures")
+        if df_dates.empty or pd.isna(df_dates['mn'].values[0]):
+            return None, None
+        return pd.to_datetime(df_dates['mn'].values[0]).date(), pd.to_datetime(df_dates['mx'].values[0]).date()
+    except Exception:
+        return None, None
 
-# Date filter
-dates = query("SELECT MIN(date) as mn, MAX(date) as mx FROM Gold.EnvironmentalFeatures")
-min_date = pd.to_datetime(dates['mn'].values[0])
-max_date = pd.to_datetime(dates['mx'].values[0])
+min_db, max_db = get_date_bounds()
 
-date_range = st.sidebar.date_input(
-    "Date Range",
-    value=(min_date, max_date),
-    min_value=min_date,
-    max_value=max_date
-)
+if min_db is None:
+    st.error("📡 Database is waking up or empty. Please wait 30 seconds and click 'Force Refresh'.")
+    st.stop()
 
-if len(date_range) == 2:
-    start, end = date_range
-else:
-    start, end = min_date, max_date
+date_range = st.sidebar.date_input("Select Range", value=(min_db, max_db), min_value=min_db, max_value=max_db)
+start, end = date_range if (isinstance(date_range, (list, tuple)) and len(date_range) == 2) else (min_db, max_db)
 
-# ── Filtered data ─────────────────────────────────────────────────────────────
-@st.cache_data(ttl=300)
-def get_env(start, end):
-    return query(f"""
-        SELECT * FROM Gold.EnvironmentalFeatures
-        WHERE date BETWEEN '{start}' AND '{end}'
-        ORDER BY date
-    """)
+# ── 5. DASHBOARD PAGES ────────────────────────────────────────────────────────
 
-df = get_env(str(start), str(end))
+# Common Data Load
+df = run_query(f"SELECT * FROM Gold.EnvironmentalFeatures WHERE date BETWEEN '{start}' AND '{end}' ORDER BY date")
 
-# ════════════════════════════════════════════════════════════════════════════════
-# PAGE 1 — HOME
-# ════════════════════════════════════════════════════════════════════════════════
+# --- PAGE: HOME ---
 if page == "🏠 Home":
     st.title("🌍 AETHER — Environmental Health Intelligence")
     st.caption("Air Quality & Respiratory Risk Platform — Cairo, Egypt")
     st.divider()
 
-    latest = df.iloc[-1] if not df.empty else None
-
-    if latest is not None:
-        # ── KPI row ───────────────────────────────────────────────────────────
+    if not df.empty:
+        latest = df.iloc[-1]
         c1, c2, c3, c4, c5 = st.columns(5)
+        
+        c1.metric("📅 Date", str(latest['date'].date() if hasattr(latest['date'], 'date') else latest['date']))
+        c2.metric("💨 AQI", round(float(latest['aqi']), 1))
+        c3.metric("🌫️ PM2.5", round(float(latest['pm25']), 1))
+        c4.metric("🌡️ Temp (°C)", round(float(latest['temperature']), 1))
+        c5.metric("🔥 Heat Index", round(float(latest['heat_index']), 1))
 
-        aqi_val   = round(float(latest['aqi']),   1) if pd.notna(latest['aqi'])   else "N/A"
-        pm25_val  = round(float(latest['pm25']),  1) if pd.notna(latest['pm25'])  else "N/A"
-        temp_val  = round(float(latest['temperature']), 1) if pd.notna(latest['temperature']) else "N/A"
-        hi_val    = round(float(latest['heat_index']),  1) if pd.notna(latest['heat_index'])  else "N/A"
-        cat       = latest['health_category'] if pd.notna(latest['health_category']) else "Unknown"
-
-        c1.metric("📅 Latest Date",      str(latest['date']))
-        c2.metric("💨 AQI",              aqi_val)
-        c3.metric("🌫️ PM2.5",           pm25_val)
-        c4.metric("🌡️ Temperature (°C)", temp_val)
-        c5.metric("🔥 Heat Index",       hi_val)
-
-        st.divider()
-
-        # ── Health category banner ────────────────────────────────────────────
+        cat = latest['health_category']
         color = COLORS.get(cat, "#95a5a6")
-        st.markdown(f"""
-            <div style="background:{color};padding:20px;border-radius:12px;text-align:center;">
-                <h2 style="color:white;margin:0;">Current Status: {cat}</h2>
-            </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f"<div style='background:{color};padding:20px;border-radius:12px;text-align:center;'><h2 style='color:white;margin:0;'>Current Status: {cat}</h2></div>", unsafe_allow_html=True)
 
-        st.divider()
-
-        # ── Recommendations ───────────────────────────────────────────────────
-        recommendations = {
-            "Safe Air Day":               "✅ Air quality is good. Safe for all outdoor activities.",
-            "Moderate Risk Day":          "⚠️ Acceptable air quality. Sensitive groups should limit prolonged exertion.",
-            "High Respiratory Risk Day":  "🟠 Elevated risk. People with respiratory conditions should stay indoors.",
-            "Mask Recommended Day":       "😷 Wear a mask outdoors. Minimize outdoor exposure.",
-            "Avoid Outdoor Activity Day": "🚫 Hazardous conditions. Stay indoors with windows closed.",
+        recs = {
+            "Safe Air Day": "✅ Air quality is good. Safe for all outdoor activities.",
+            "Moderate Risk Day": "⚠️ Acceptable air quality. Sensitive groups should limit exertion.",
+            "High Respiratory Risk Day": "🟠 Elevated risk. People with respiratory conditions should stay indoors.",
+            "Mask Recommended Day": "😷 Wear a mask outdoors. Minimize exposure.",
+            "Avoid Outdoor Activity Day": "🚫 Hazardous conditions. Stay indoors.",
         }
-        st.info(recommendations.get(cat, "Monitor conditions closely."))
+        st.info(recs.get(cat, "Monitor conditions closely."))
 
-        # ── Mini trend chart ──────────────────────────────────────────────────
         st.subheader("AQI Trend — Last 30 Days")
-        last30 = df.tail(30)
-        fig = px.line(last30, x="date", y="aqi", color_discrete_sequence=["#3498db"])
-        fig.update_layout(margin=dict(l=0,r=0,t=0,b=0), height=250)
+        fig = px.line(df.tail(30), x="date", y="aqi", color_discrete_sequence=["#3498db"])
         st.plotly_chart(fig, use_container_width=True)
-        
-        
 
-# ════════════════════════════════════════════════════════════════════════════════
-# PAGE 2 — ENVIRONMENTAL OVERVIEW
-# ════════════════════════════════════════════════════════════════════════════════
+# --- PAGE: ENVIRONMENTAL OVERVIEW ---
 elif page == "🌿 Environmental Overview":
     st.title("🌿 Environmental Overview")
-    st.divider()
-
     c1, c2 = st.columns(2)
-
-    # AQI trend
     with c1:
         st.subheader("AQI Over Time")
-        fig = px.line(df, x="date", y="aqi", color_discrete_sequence=["#e74c3c"])
-        fig.update_layout(height=300, margin=dict(l=0,r=0,t=0,b=0))
-        st.plotly_chart(fig, use_container_width=True)
-
-    # PM2.5 trend
+        st.plotly_chart(px.line(df, x="date", y="aqi", color_discrete_sequence=["#e74c3c"]), use_container_width=True)
     with c2:
         st.subheader("PM2.5 Over Time")
-        fig = px.line(df, x="date", y="pm25", color_discrete_sequence=["#e67e22"])
-        fig.update_layout(height=300, margin=dict(l=0,r=0,t=0,b=0))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(px.line(df, x="date", y="pm25", color_discrete_sequence=["#e67e22"]), use_container_width=True)
 
     c3, c4 = st.columns(2)
-
-    # Temperature & Heat Index
     with c3:
         st.subheader("Temperature vs Heat Index")
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=df['date'], y=df['temperature'], name='Temperature', line=dict(color='#f39c12')))
-        fig.add_trace(go.Scatter(x=df['date'], y=df['heat_index'],  name='Heat Index',  line=dict(color='#e74c3c')))
-        fig.update_layout(height=300, margin=dict(l=0,r=0,t=0,b=0))
+        fig.add_trace(go.Scatter(x=df['date'], y=df['temperature'], name='Temp', line=dict(color='#f39c12')))
+        fig.add_trace(go.Scatter(x=df['date'], y=df['heat_index'], name='Heat Index', line=dict(color='#e74c3c')))
         st.plotly_chart(fig, use_container_width=True)
-
-    # Health category donut
     with c4:
         st.subheader("Health Category Distribution")
         cat_counts = df['health_category'].value_counts().reset_index()
-        cat_counts.columns = ['category', 'count']
-        fig = px.pie(
-            cat_counts, names='category', values='count',
-            color='category',
-            color_discrete_map=COLORS,
-            hole=0.4
-        )
-        fig.update_layout(height=300, margin=dict(l=0,r=0,t=0,b=0))
+        fig = px.pie(cat_counts, names='health_category', values='count', color='health_category', color_discrete_map=COLORS, hole=0.4)
         st.plotly_chart(fig, use_container_width=True)
 
-    # Monthly AQI
-    st.subheader("Monthly Average AQI")
-    df['month'] = pd.to_datetime(df['date']).dt.to_period('M').astype(str)
-    monthly = df.groupby('month')['aqi'].mean().reset_index()
-    fig = px.bar(monthly, x='month', y='aqi', color_discrete_sequence=["#3498db"])
-    fig.update_layout(height=300, margin=dict(l=0,r=0,t=30,b=0))
-    st.plotly_chart(fig, use_container_width=True)
-
-# ════════════════════════════════════════════════════════════════════════════════
-# PAGE 3 — HEALTH INTELLIGENCE
-# ════════════════════════════════════════════════════════════════════════════════
+# --- PAGE: HEALTH INTELLIGENCE ---
 elif page == "🫁 Health Intelligence":
     st.title("🫁 Health Intelligence")
-    st.divider()
-
-    # Risk predictions
-    preds = query(f"""
-        SELECT TOP 30 p.date, p.health_category, p.aqi, p.pm25, p.predicted_at
-        FROM Gold.RiskPredictions p
-        ORDER BY p.date DESC
-    """)
-
-    c1, c2 = st.columns([1, 2])
-
-    with c1:
-        st.subheader("Latest Prediction")
+    preds = run_query("SELECT TOP 30 date, health_category, aqi, pm25 FROM Gold.RiskPredictions ORDER BY date DESC")
+    
+    col1, col2 = st.columns([1, 2])
+    with col1:
         if not preds.empty:
-            latest_pred = preds.iloc[0]
-            cat = latest_pred['health_category']
-            color = COLORS.get(cat, "#95a5a6")
-            st.markdown(f"""
-                <div style="background:{color};padding:15px;border-radius:10px;text-align:center;">
-                    <h3 style="color:white;margin:0;">{cat}</h3>
-                </div>
-            """, unsafe_allow_html=True)
-            st.metric("AQI",   round(float(latest_pred['aqi']),  1) if pd.notna(latest_pred['aqi'])  else "N/A")
-            st.metric("PM2.5", round(float(latest_pred['pm25']), 1) if pd.notna(latest_pred['pm25']) else "N/A")
+            l_p = preds.iloc[0]
+            st.markdown(f"<div style='background:{COLORS.get(l_p['health_category'], '#95a5a6')};padding:15px;border-radius:10px;text-align:center;'><h3 style='color:white;margin:0;'>{l_p['health_category']}</h3></div>", unsafe_allow_html=True)
+            st.metric("Predicted AQI", round(l_p['aqi'], 1))
+    with col2:
+        st.dataframe(preds, use_container_width=True)
 
-    with c2:
-        st.subheader("Prediction History")
-        st.dataframe(preds, use_container_width=True, height=300)
-
-    # Respiratory stress scatter
     st.subheader("Respiratory Stress vs AQI")
-    fig = px.scatter(
-        df, x="aqi", y="respiratory_stress",
-        color="health_category",
-        color_discrete_map=COLORS,
-        opacity=0.6
-    )
-    fig.update_layout(height=350, margin=dict(l=0,r=0,t=0,b=0))
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(px.scatter(df, x="aqi", y="respiratory_stress", color="health_category", color_discrete_map=COLORS), use_container_width=True)
 
-# ════════════════════════════════════════════════════════════════════════════════
-# PAGE 4 — FORECASTS
-# ════════════════════════════════════════════════════════════════════════════════
+# --- PAGE: FORECASTS ---
 elif page == "🔮 Forecasts":
     st.title("🔮 Environmental Forecasts")
-    st.divider()
-
-    forecasts = query("""
-        SELECT forecast_date, forecast_horizon, predicted_category, confidence, model_version
-        FROM Gold.ForecastPredictions
-        ORDER BY forecast_date DESC
-    """)
-
-    if forecasts.empty:
-        st.warning("No forecast data available yet.")
-    else:
-        # Forecast cards
+    f_df = run_query("SELECT forecast_date, predicted_category, confidence FROM Gold.ForecastPredictions ORDER BY forecast_date DESC")
+    
+    if not f_df.empty:
         st.subheader("Upcoming Forecast")
-        upcoming = forecasts.head(7)
-
-        cols = st.columns(min(len(upcoming), 7))
+        upcoming = f_df.head(7)
+        cols = st.columns(len(upcoming))
         for i, (_, row) in enumerate(upcoming.iterrows()):
-            with cols[i % 7]:
-                cat   = row['predicted_category']
-                color = COLORS.get(cat, "#95a5a6")
-                conf  = round(float(row['confidence']) * 100, 1) if pd.notna(row['confidence']) else "N/A"
-                st.markdown(f"""
-                    <div style="background:{color};padding:10px;border-radius:8px;text-align:center;margin-bottom:8px;">
-                        <small style="color:white;">{row['forecast_date']}</small>
-                        <p style="color:white;font-weight:bold;margin:4px 0;font-size:12px;">{cat}</p>
-                        <small style="color:white;">Conf: {conf}%</small>
-                    </div>
-                """, unsafe_allow_html=True)
-
+            with cols[i]:
+                color = COLORS.get(row['predicted_category'], "#95a5a6")
+                st.markdown(f"<div style='background:{color};padding:10px;border-radius:8px;text-align:center;color:white;'><small>{row['forecast_date'].date()}</small><br><b>{row['predicted_category']}</b></div>", unsafe_allow_html=True)
         st.divider()
+        st.dataframe(f_df, use_container_width=True)
+    else:
+        st.warning("No forecast data available.")
 
-        # Confidence over time
-        st.subheader("Forecast Confidence Over Time")
-        fig = px.bar(
-            forecasts, x="forecast_date", y="confidence",
-            color="predicted_category",
-            color_discrete_map=COLORS
-        )
-        fig.update_layout(height=350, margin=dict(l=0,r=0,t=0,b=0))
-        st.plotly_chart(fig, use_container_width=True)
-
-        st.subheader("Full Forecast Table")
-        st.dataframe(forecasts, use_container_width=True)
-
-# ── Footer ────────────────────────────────────────────────────────────────────
+# ── 6. FOOTER ─────────────────────────────────────────────────────────────────
 st.sidebar.divider()
-st.sidebar.caption("AETHER v1.0 | Cairo, Egypt")
-st.sidebar.caption("Built by Nada Hosny | Marketing Data Analyst")
+st.sidebar.caption("AETHER v1.2 | Cairo, Egypt")
+st.sidebar.caption("Built by Nada Hosny")
