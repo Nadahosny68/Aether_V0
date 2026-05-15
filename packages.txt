@@ -1,0 +1,3 @@
+unixodbc-dev
+zlib1g-dev
+libjpeg-dev
