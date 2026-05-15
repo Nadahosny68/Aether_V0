@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
-import pyodbc
 import os
 import plotly.express as px
 import plotly.graph_objects as go
+from sqlalchemy import create_engine
 from dotenv import load_dotenv
 
 load_dotenv()
