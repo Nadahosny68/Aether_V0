@@ -40,10 +40,9 @@ def get_secret(key):
 
 @st.cache_resource
 def get_conn():
-    # Pulling credentials from the Secrets you just set up
     conn_str = (
         f"DRIVER={{{st.secrets['DRIVER']}}};"
-        f"SERVER={st.secrets['SERVER']};"
+        f"SERVER=tcp:{st.secrets['SERVER']},1433;"
         f"DATABASE={st.secrets['DATABASE']};"
         f"UID={st.secrets['USERNAME']};"
         f"PWD={st.secrets['PASSWORD']};"
