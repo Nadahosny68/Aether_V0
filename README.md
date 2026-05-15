@@ -20,6 +20,11 @@
 
 </div>
 
+## 🌍 AETHER — Live Demo
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://aetherv0-buaxxk7v9kkeuakkdfwfjx.streamlit.app)
+
+Air Quality & Respiratory Risk Intelligence Platform — Cairo, Egypt
+
 ---
 
 ## Overview
