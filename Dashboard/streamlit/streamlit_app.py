@@ -5,6 +5,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
+import urllib.parse
+
 
 load_dotenv()
 
@@ -58,13 +60,12 @@ def get_secret(key):
 # ══════════════════════════════════════════════════════════════════════════════
 # 4. DATABASE — no cache, handles serverless wake-up
 # ══════════════════════════════════════════════════════════════════════════════
-import urllib
 
 def get_engine():
     server   = get_secret('SERVER')
     database = get_secret('DATABASE')
     username = get_secret('USERNAME')
-    password = get_secret('PASSWORD')
+    password = urllib.parse.quote_plus(get_secret('PASSWORD'))  # encodes @ symbol
     return create_engine(
         f"mssql+pymssql://{username}:{password}@{server}/{database}"
     )
