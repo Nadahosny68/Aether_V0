@@ -58,24 +58,23 @@ def get_secret(key):
 # ══════════════════════════════════════════════════════════════════════════════
 # 4. DATABASE — no cache, handles serverless wake-up
 # ══════════════════════════════════════════════════════════════════════════════
-def get_conn():
-    conn_str = (
-        f"DRIVER={{{get_secret('DRIVER')}}};"
-        f"SERVER=tcp:{get_secret('SERVER')},1433;"
-        f"DATABASE={get_secret('DATABASE')};"
-        f"UID={get_secret('USERNAME')};"
-        f"PWD={get_secret('PASSWORD')};"
-        "Encrypt=yes;"
-        "TrustServerCertificate=no;"
-        "Connection Timeout=60;"
+from sqlalchemy import create_engine
+import urllib
+
+def get_engine():
+    server   = get_secret('SERVER')
+    database = get_secret('DATABASE')
+    username = get_secret('USERNAME')
+    password = get_secret('PASSWORD')
+    # pymssql — no ODBC driver needed, works on Linux
+    return create_engine(
+        f"mssql+pymssql://{username}:{password}@{server}/{database}"
     )
-    return pyodbc.connect(conn_str)
 
 def run_query(sql):
     try:
-        conn = get_conn()
-        df   = pd.read_sql(sql, conn)
-        conn.close()
+        engine = get_engine()
+        df = pd.read_sql(sql, engine)
         return df
     except Exception as e:
         st.error(f"❌ DB Error: {e}")
