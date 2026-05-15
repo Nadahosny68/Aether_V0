@@ -1,3 +1,5 @@
 unixodbc-dev
 zlib1g-dev
-libjpeg-dev
+unixodbc
+odbcinst
+libodbc1
