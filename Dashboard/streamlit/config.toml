@@ -8,4 +8,10 @@ textColor="#FAFAFA"
 [server]
 headless = true
 enableCORS = false
-port = 8000
+
+[database]
+DRIVER = "ODBC Driver 18 for SQL Server"
+SERVER = "aether-server.database.windows.net"
+DATABASE = "AetherDB"
+USERNAME = "aether-server"
+PASSWORD = "NadaHosny@2026"
