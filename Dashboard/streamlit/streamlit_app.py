@@ -137,11 +137,15 @@ start_date, end_date = (
 # ══════════════════════════════════════════════════════════════════════════════
 # 7. LOAD MAIN DATA
 # ══════════════════════════════════════════════════════════════════════════════
-df = run_query(f"""
-    SELECT * FROM Gold.EnvironmentalFeatures
-    WHERE date BETWEEN '{start_date}' AND '{end_date}'
-    ORDER BY date
-""")
+def run_query(sql):
+    try:
+        conn = get_conn()
+        df   = pd.read_sql(sql, conn)
+        conn.close()
+        return df
+    except Exception as e:
+        st.error(f"❌ DB Error: {e}")
+        return pd.DataFrame()
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE 1 — HOME
