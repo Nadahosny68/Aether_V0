@@ -40,12 +40,13 @@ def get_secret(key):
 
 @st.cache_resource
 def get_conn():
+    db = st.secrets["database"]
     conn_str = (
-        f"DRIVER={{{st.secrets['DRIVER']}}};"
-        f"SERVER=tcp:{st.secrets['SERVER']},1433;"
-        f"DATABASE={st.secrets['DATABASE']};"
-        f"UID={st.secrets['USERNAME']};"
-        f"PWD={st.secrets['PASSWORD']};"
+        f"DRIVER={{{db['DRIVER']}}};"
+        f"SERVER=tcp:{db['SERVER']},1433;"
+        f"DATABASE={db['DATABASE']};"
+        f"UID={db['USERNAME']};"
+        f"PWD={db['PASSWORD']};"
         "Encrypt=yes;"
         "TrustServerCertificate=no;"
         "Connection Timeout=30;"
