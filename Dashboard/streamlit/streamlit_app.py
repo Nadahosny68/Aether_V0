@@ -24,7 +24,7 @@ st.set_page_config(
 )
 
 # ── Auto-refresh every 30 minutes ────────────────────────────────────────────
-st_autorefresh(interval=30 * 60 * 1000, silent=True)  # milliseconds
+st_autorefresh(interval=30 * 60 * 1000)  # milliseconds
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 2. CUSTOM CSS
