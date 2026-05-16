@@ -1,0 +1,71 @@
+# =========================
+# CORE DATA & ML
+# =========================
+pandas==2.2.2
+numpy==1.26.4
+scikit-learn==1.5.0
+scipy==1.13.1
+joblib==1.4.2
+threadpoolctl==3.6.0
+
+# =========================
+# DATABASE
+# =========================
+pyodbc==5.1.0
+SQLAlchemy==2.0.30
+
+# =========================
+# WEB / API
+# =========================
+requests==2.32.3
+urllib3==2.2.1
+charset-normalizer==3.4.2
+certifi==2025.4.26
+idna==3.10
+httpx==0.28.1
+httpcore==1.0.9
+
+# =========================
+# DASHBOARD & VISUALIZATION
+# =========================
+streamlit==1.35.0
+plotly==5.22.0
+matplotlib==3.8.4
+seaborn==0.13.2
+pillow==10.3.0
+
+# =========================
+# AUTOMATION
+# =========================
+prefect==2.19.0
+
+# =========================
+# ENVIRONMENT
+# =========================
+python-dotenv==1.0.1
+PyYAML==6.0.2
+
+# =========================
+# JUPYTER
+# =========================
+jupyter==1.0.0
+notebook==7.2.0
+jupyterlab==4.2.1
+ipykernel==6.29.4
+ipywidgets==8.1.2
+
+# =========================
+# HTML / PARSING
+# =========================
+beautifulsoup4==4.12.3
+soupsieve==2.5
+bleach==6.1.0
+
+# =========================
+# UTILITIES
+# =========================
+python-dateutil==2.9.0.post0
+packaging==24.0
+typing_extensions==4.11.0
+psutil==5.9.8
+colorama==0.4.6
