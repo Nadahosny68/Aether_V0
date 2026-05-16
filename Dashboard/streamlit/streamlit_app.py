@@ -174,7 +174,8 @@ st.sidebar.subheader("📅 Date Filter")
 quick = st.sidebar.selectbox(
     "Quick select",
     ["All Time", "Last 7 Days", "Last 30 Days",
-     "Last 3 Months", "Last 6 Months", "Last Year", "Custom Range"]
+     "Last 3 Months", "Last 6 Months", "Last Year", "Custom Range"],
+    key="quick_select"
 )
 
 today = max_db
@@ -206,6 +207,10 @@ else:  # All Time
 
 st.sidebar.caption(f"📆 {start_date} → {end_date}")
 
+if st.sidebar.button("🔁 Reset to All Time"):
+    st.session_state["quick_select"] = "All Time"
+    st.rerun()
+
 # ══════════════════════════════════════════════════════════════════════════════
 # 9. LOAD DATA
 # ══════════════════════════════════════════════════════════════════════════════
@@ -236,7 +241,7 @@ if page == "🏠 Home":
     c1.metric("📅 Date",
         str(latest['date'].date() if hasattr(latest['date'], 'date') else latest['date'])
     )
-    c2.metric("💨 AQI (US)",        f"{aqi_val}")
+    c2.metric("💨 AQI (US EPA)",    f"{aqi_val} / 500")
     c3.metric("🌫️ PM2.5",           f"{fmt(latest['pm25'])} μg/m³")
     c4.metric("🌡️ Temperature",     f"{fmt(latest['temperature'])} °C")
     c5.metric("🔥 Heat Index",      f"{fmt(latest['heat_index'])} °C")
