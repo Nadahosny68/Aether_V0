@@ -241,7 +241,7 @@ if page == "🏠 Home":
     c1.metric("📅 Date",
         str(latest['date'].date() if hasattr(latest['date'], 'date') else latest['date'])
     )
-    c2.metric("💨 AQI (US EPA)",    f"{aqi_val} / 500")
+    c2.metric("💨 AQI (US)",        f"{aqi_val}")
     c3.metric("🌫️ PM2.5",           f"{fmt(latest['pm25'])} μg/m³")
     c4.metric("🌡️ Temperature",     f"{fmt(latest['temperature'])} °C")
     c5.metric("🔥 Heat Index",      f"{fmt(latest['heat_index'])} °C")
