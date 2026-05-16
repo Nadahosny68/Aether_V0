@@ -7,6 +7,9 @@ import urllib.parse
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
 from datetime import date, timedelta
+import time
+from streamlit_autorefresh import st_autorefresh
+
 
 load_dotenv()
 
@@ -19,6 +22,9 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# ── Auto-refresh every 30 minutes ────────────────────────────────────────────
+st_autorefresh(interval=30 * 60 * 1000, silent=True)  # milliseconds
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 2. CUSTOM CSS
