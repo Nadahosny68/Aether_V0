@@ -1,372 +1,518 @@
 <div align="center">
 
+<!-- Replace with your actual banner image -->
 <img src="Images/aether_banner.svg" width="100%" alt="Aether Environmental Monitoring Platform"/>
 
 <br/>
 <br/>
 
-[![CI/CD](https://github.com/username/aether/actions/workflows/pipeline.yml/badge.svg)](https://github.com/username/aether/actions)
-[![codecov](https://codecov.io/gh/username/aether/branch/main/graph/badge.svg)](https://codecov.io/gh/username/aether)
-[![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-1D9E75?style=flat&logo=python&logoColor=white)](https://python.org)
-[![SQL Server](https://img.shields.io/badge/SQL%20Server-2019-534AB7?style=flat&logo=microsoftsqlserver&logoColor=white)](https://www.microsoft.com/sql-server)
-[![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3-EF9F27?style=flat&logo=scikit-learn&logoColor=white)](https://scikit-learn.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-0F6E56?style=flat)](LICENSE)
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=flat&logo=python&logoColor=white)
+![SQL Server](https://img.shields.io/badge/SQL%20Server-2019-CC2927?style=flat&logo=microsoftsqlserver&logoColor=white)
+![Azure SQL](https://img.shields.io/badge/Azure%20SQL-Cloud-0078D4?style=flat&logo=microsoftazure&logoColor=white)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3-F7931E?style=flat&logo=scikit-learn&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-Live-FF4B4B?style=flat&logo=streamlit&logoColor=white)
+![Prefect](https://img.shields.io/badge/Prefect-Orchestrated-1D4ED8?style=flat&logo=prefect&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-10B981?style=flat)
 
 <br/>
 
-**Predicting environmental health risks in Cairo through data engineering and machine learning**
+**Daily environmental health risk intelligence for Cairo, Egypt**  
+*Automated ETL · Random Forest ML · 3-Day Forecasting · Live Web Dashboard*
 
-[Overview](#-overview) · [Architecture](#-architecture) · [Quick Start](#-quick-start) · [ML Model](#-ml-model) · [Dashboard](#-dashboard) · [Contributing](#-contributing)
+<br/>
+
+[Overview](#-overview) · [Architecture](#-architecture) · [Quick Start](#-quick-start) · [ML Model](#-ml-model) · [Dashboard](#-dashboard) · [Streamlit App](#-streamlit-app) · [Azure Deployment](#-azure-deployment)
 
 </div>
 
-## 🌍 AETHER — Live Demo
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://aether-cairo.streamlit.app/)
+---
 
-Air Quality & Respiratory Risk Intelligence Platform — Cairo, Egypt
+## 🌍 Live Application
+
+<div align="center">
+
+### 🔗 [aether-cairo.streamlit.app](https://aether-cairo.streamlit.app)
+
+*Hosted on Streamlit Community Cloud · Backed by Azure SQL Database*
+
+</div>
+
+> **First visit note:** Azure SQL free tier pauses after 60 minutes of inactivity. If the app shows a loading message, wait 30 seconds and click **Refresh Data** in the sidebar. Subsequent loads are instant.
 
 ---
 
 ## Overview
 
-Aether is a production-grade environmental health intelligence platform built for Cairo, Egypt. It ingests real-time weather and air quality data from live APIs, processes it through an automated ETL pipeline, and applies a trained Random Forest classifier to generate daily health risk predictions — delivering actionable insights to residents through an interactive Power BI dashboard.
+Aether is a production-grade environmental health intelligence platform for Cairo, Egypt. It ingests real-time weather and air quality data from live APIs, processes it through an automated daily ETL pipeline, and applies a trained Random Forest classifier to classify each day into one of five health risk categories — delivering actionable guidance through both a live Streamlit web application and a Power BI dashboard.
 
-The platform was built to address a genuine public health gap: Cairo consistently ranks among the world's most polluted cities, yet there is no unified, automated system that translates raw environmental data into clear, daily health guidance.
+**The problem it solves:** Cairo consistently ranks among the world's most polluted cities, yet no unified, automated system translates raw environmental measurements into clear daily health guidance for residents.
 
 ```
-📡 Live APIs → 🔧 ETL Pipeline → 🗄️ SQL Server DW → 🤖 ML Model → 📊 Power BI
-                    (Prefect orchestrates every step, daily)
+📡 Live APIs  →  🔧 ETL Pipeline  →  🗄️ Medallion DWH  →  🤖 ML Model  →  📊 Dashboard + 🌐 Web App
+                       (Prefect orchestrates every step, daily at 07:00)
 ```
 
 **Key outcomes:**
-- Classifies each day into one of 5 health risk categories with 97% F1 score
-- Tracks 13 environmental features across weather and pollution dimensions
-- Covers 1,154 days of historical data (2022–2025) for trend analysis
-- Fully automated — runs daily with zero manual intervention
+- Classifies each day into one of **5 health risk categories** with **94% overall accuracy**
+- Tracks **17 environmental features** across weather, pollution, and derived dimensions
+- Covers **1,158 days** of historical data (Aug 2022 – Oct 2025) for trend analysis
+- **3-day health forecast** powered by the same ML model using OWM API predictions
+- Fully automated — runs daily with zero manual intervention via Windows Task Scheduler
 
 ---
 
 ## Architecture
 
+<!-- ┌──────────────────────────────────────────────────────────────────┐
+     │  PLACEHOLDER — replace with your data flow diagram              │
+     │  Suggested file path: Images/aether_data_flow.svg               │
+     │  Should show: APIs → Bronze → Silver → Gold → ML → Dashboard    │
+     └──────────────────────────────────────────────────────────────────┘ -->
+
 <div align="center">
-<img src="Images/aether_data_flow.svg" width="100%" alt="Aether System Architecture"/>
+<img src="Images/aether_data_flow.svg" width="100%" alt="Aether Data Flow Architecture"/>
 </div>
 
 <br/>
 
-The platform is organised into four clearly separated layers:
+The platform follows a **Medallion Architecture** with three clearly separated data layers:
 
-**Ingestion layer** — Two Python scripts pull from OpenWeatherMap (weather) and WAQI (air quality, station A527650 Cairo). Historical backfill CSVs cover 2000–2026.
+### Bronze — Raw Ingestion
+Stores source data exactly as received, with no transformations:
+- `bronze.cairo_weather_histori` — Open-Meteo historical weather CSV (2000–2025, 9,406 rows)
+- `bronze.cairo_airquality_histo` — Open-Meteo historical air quality CSV (2022–2026, 1,298 rows)
 
-**Processing layer** — `data_cleaning.py` applies targeted null handling (median fill on non-critical columns, drop only when critical fields are missing). `feature_engineering.py` inner-joins weather and pollution on `date` and derives five composite health features.
+### Silver — Cleaned & Validated
+Applies cleaning rules, renames columns, fills nulls with median, removes duplicates:
+- `silver.WeatherMetrics` — Clean weather data with all max/min columns
+- `silver.PollutionMetrics` — Clean pollution data including CO and aerosol optical depth
 
-**Storage layer** — SSIS packages load `environmental_features.csv` into SQL Server (`AetherDW_V0`) with five tables. A lookup transformation prevents duplicate loads.
-
-**Intelligence layer** — A Random Forest classifier runs inference on the latest features and writes predictions to `RiskPredictions`. Power BI connects directly to the DW for live reporting.
+### Gold — Analytics & ML-Ready
+Fully engineered features ready for ML inference and Power BI consumption:
+- `gold.EnvironmentalFeatures` — Joined features + health classification (primary analytics table)
+- `gold.RiskPredictions` — ML model inference output
+- `gold.ForecastPredictions` — 3-day forward predictions
+- `gold.DimDate` — Date dimension for Power BI time filtering
 
 ---
 
-## Project structure
+## ETL Pipeline
+
+<!-- ┌──────────────────────────────────────────────────────────────────┐
+     │  PLACEHOLDER — replace with your ETL pipeline diagram           │
+     │  Suggested file path: Images/aether_etl_pipeline.svg            │
+     │  Should show the 9-task Prefect flow with branch A and B        │
+     └──────────────────────────────────────────────────────────────────┘ -->
+
+<div align="center">
+<img src="Images/aether_etl_pipeline.svg" width="100%" alt="Aether ETL Pipeline"/>
+</div>
+
+<br/>
+
+The daily Prefect flow runs two branches in sequence:
+
+**Branch A — Historical Reload + Live Append**
+
+| Step | Script | Output |
+|------|--------|--------|
+| 1 | `data_cleaning.py` | `staging/weather_clean.csv` + `staging/pollution_clean.csv` |
+| 2 | `fetch_weather_api.py` | `raw/weather_api_YYYYMMDD.json` (current + daily max/min from forecast slots) |
+| 3 | `fetch_pollution_api.py` | `raw/pollution_api_YYYYMMDD.json` (OWM Air Pollution API) |
+| 4 | `feature_engineering.py` | `processed/environmental_features.csv` (1,158 rows, 41 columns) |
+| 5 | `load_to_sql.py` | Gold.EnvironmentalFeatures reloaded (preserves `api_daily` rows) |
+| 6 | `append_daily_api_row.py` | Today's live row inserted into EF + RiskPredictions |
+| 7 | `predict_risk.py` | ML predictions for any new dates |
+
+**Branch B — 3-Day Forecast**
+
+| Step | Script | Output |
+|------|--------|--------|
+| 8 | `fetch_weather_forecast.py` + `fetch_pollution_forecast.py` | Forecast JSONs for D+1, D+2, D+3 |
+| 9 | `feature_engineering_forecast.py` → `predict_forecast.py` | ForecastPredictions UPSERT |
+
+> **Important note on SSIS:** The SSIS package (`LoadEnvironmentalFeatures.dtsx`) exists in the `SSIS/` folder for documentation and portfolio purposes. SQL Server Developer Edition cannot run SSIS via `dtexec.exe` outside Visual Studio (error `0xC000F427`). Production automation uses `load_to_sql.py` (Python/pyodbc) which performs the identical operation with no license restriction.
+
+---
+
+## Project Structure
 
 ```
 Aether_V0/
 ├── Automation/
-│   └── prefect_pipeline.py          # Daily orchestration (Prefect)
+│   ├── prefect_pipeline.py          # Daily Prefect orchestration (9 tasks)
+│   ├── run_pipeline.ps1             # PowerShell wrapper for Task Scheduler
+│   └── register_task.ps1           # Registers Task Scheduler job (07:00 daily)
 ├── Dashboard/
-│   └── Aether_V0_Dashboard.pbix     # Power BI report file
-├── data/
-│   ├── raw/                         # API JSON outputs
-│   ├── staging/                     # Cleaned CSVs
-│   └── processed/
-│       └── environmental_features.csv
+│   └── Aether_V0_Dashboard.pbix    # Power BI report (5 pages)
 ├── Database/
-│   └── DDL.sql                      # Full DW schema
+│   ├── DDL.sql                     # Full local DWH schema (Bronze/Silver/Gold)
+│   └── migrate_to_azure.py         # Azure SQL migration script
+├── data/
+│   ├── raw/                        # Daily API JSON files + historical CSVs
+│   ├── staging/                    # Cleaned CSVs (weather_clean, pollution_clean)
+│   └── processed/                  # Engineered features (env_features, forecast_features)
 ├── ML/
-│   ├── training/train_risk_model.py
-│   ├── inference/predict_risk.py
-│   └── models/environmental_risk_model.pkl
+│   ├── training/
+│   │   └── train_risk_model.py     # Model training + feature_columns.pkl export
+│   ├── inference/
+│   │   ├── predict_risk.py         # Historical prediction writer
+│   │   └── predict_forecast.py    # 3-day forecast predictor
+│   └── models/
+│       ├── environmental_risk_model.pkl  # Trained RF model (v2.1)
+│       └── feature_columns.pkl          # Saved feature list (auto-loaded at inference)
 ├── pipelines/
 │   ├── ingestion/
-│   │   ├── fetch_weather_api.py
-│   │   └── fetch_pollution_api.py
+│   │   ├── fetch_weather_api.py         # OWM current + daily stats
+│   │   ├── fetch_pollution_api.py       # OWM Air Pollution API (replaces WAQI)
+│   │   ├── fetch_weather_forecast.py    # OWM 3-day forecast
+│   │   └── fetch_pollution_forecast.py  # OWM pollution forecast + EPA AQI conversion
 │   ├── loading/
-│   │   └── load_to_sql.py
+│   │   ├── load_to_sql.py              # Replaces SSIS for production
+│   │   └── append_daily_api_row.py     # Appends today's live row daily
 │   └── transformation/
-│       ├── data_cleaning.py
-│       └── feature_engineering.py
-├── ssis/
-│   └── LoadEnvironmentalFeatures.dtsx
+│       ├── data_cleaning.py             # Bronze → Silver cleaning
+│       ├── feature_engineering.py       # Silver → Gold feature derivation
+│       └── feature_engineering_forecast.py
+├── SSIS/                               # Visual Studio SSIS project (portfolio)
+├── app.py                              # Streamlit web application
 ├── utils/
 │   ├── __init__.py
 │   └── logger.py
-└── logs/
-    └── pipeline.log
+├── logs/
+│   ├── pipeline.log
+│   └── scheduler.log
+└── .env
 ```
 
 ---
 
-## Quick start
+## Quick Start
 
 ### Prerequisites
 
 | Tool | Version | Notes |
-|---|---|---|
+|------|---------|-------|
 | Python | 3.9+ | Tested on 3.11 |
-| SQL Server | 2019+ | Named instance required |
-| SSIS | Visual Studio 2022 | Integration Services extension |
-| Power BI Desktop | Latest | For dashboard file |
+| SQL Server | 2019+ | Developer or Standard edition |
+| Power BI Desktop | Latest | For `.pbix` file |
+| ODBC Driver | 17 for SQL Server | Required for pyodbc |
 
 ### Installation
 
 **1. Clone the repository**
-
 ```bash
 git clone https://github.com/username/aether.git
 cd aether
 ```
 
 **2. Create virtual environment**
-
 ```bash
 python -m venv venv
 # Windows
 venv\Scripts\activate
-# macOS / Linux
-source venv/bin/activate
 ```
 
 **3. Install dependencies**
-
 ```bash
 pip install -r requirements.txt
 ```
 
-**4. Configure credentials**
-
-Copy `.env.example` to `.env` and fill in your values:
-
+**4. Configure credentials — copy `.env.example` to `.env`**
 ```env
-# API keys
+# OpenWeatherMap (weather + pollution + forecast)
 OPENWEATHER_API_KEY=your_key_here
-WAQI_TOKEN=your_token_here
 
-# SQL Server
-SQL_SERVER=DESKTOP-XXXXXXX          # your named instance
+# SQL Server (local)
+SQL_SERVER=DESKTOP-XXXXXXX
 SQL_DATABASE=AetherDW_V0
-
-# Paths
+SQL_DRIVER=ODBC Driver 17 for SQL Server
 PROJECT_ROOT=D:\Aether\Aether_V0
-DTEXEC_PATH=C:\Program Files\Microsoft SQL Server\160\DTS\Binn\dtexec.exe
+
+# Azure SQL (for cloud deployment)
+AZURE_SQL_SERVER=your-server.database.windows.net
+AZURE_SQL_DATABASE=AetherDW_V0
+AZURE_SQL_USER=your_username
+AZURE_SQL_PASSWORD=your_password
+AZURE_SQL_DRIVER=ODBC Driver 17 for SQL Server
 ```
 
 **5. Initialise the database**
-
 ```sql
--- Run Database/DDL.sql against your SQL Server instance
--- Creates: DimDate, WeatherMetrics, PollutionMetrics,
---          EnvironmentalFeatures, RiskPredictions
+-- Run Database/DDL.sql to create all schemas and tables:
+-- Bronze: cairo_weather_histori, cairo_airquality_histo
+-- Silver: WeatherMetrics, PollutionMetrics
+-- Gold:   DimDate, EnvironmentalFeatures, RiskPredictions, ForecastPredictions
 ```
 
-**6. Load historical data**
-
+**6. Run the initial data load**
 ```bash
 python pipelines/transformation/data_cleaning.py
-python pipelines/transformation/feature_engineering.py --historical
+python pipelines/transformation/feature_engineering.py
+python pipelines/loading/load_to_sql.py
 ```
 
 **7. Train the model**
-
 ```bash
 python ML/training/train_risk_model.py
 # Outputs: ML/models/environmental_risk_model.pkl
+#          ML/models/feature_columns.pkl
 ```
 
 **8. Run the full pipeline**
-
 ```bash
-# Single run
 python Automation/prefect_pipeline.py
+```
 
-# Or run each step manually
-python pipelines/ingestion/fetch_weather_api.py
-python pipelines/ingestion/fetch_pollution_api.py
-python pipelines/transformation/feature_engineering.py
-# then execute the SSIS package via dtexec
-python ML/inference/predict_risk.py
+**9. (Optional) Schedule daily automation**
+```powershell
+# Registers a Task Scheduler job to run daily at 07:00
+powershell -ExecutionPolicy Bypass -File Automation\register_task.ps1
 ```
 
 ---
 
-## Data sources
+## Data Sources
 
 | Layer | Source | Coverage | Format |
-|---|---|---|---|
-| Live weather | OpenWeatherMap API | Real-time Cairo | JSON |
-| Live air quality | WAQI API (station A527650) | Real-time Cairo | JSON |
-| Historical weather | Open-Meteo / Kaggle | 2000–2025 | CSV |
-| Historical air quality | Open-Meteo / Kaggle | 2022–2026 | CSV |
+|-------|--------|----------|--------|
+| Live weather | OpenWeatherMap `/weather` + `/forecast` | Real-time Cairo | JSON |
+| Live air quality | OpenWeatherMap Air Pollution API | Real-time Cairo | JSON |
+| Historical weather | Open-Meteo | 2000–2025, 9,406 rows | CSV |
+| Historical air quality | Open-Meteo | 2022–2026, 1,298 rows | CSV |
+| Forecast weather | OWM `/forecast` (3-hour aggregated) | D+1, D+2, D+3 | JSON |
+| Forecast pollution | OWM Air Pollution Forecast | D+1, D+2, D+3 | JSON |
 
-**After inner join on date:** 1,154 overlapping rows spanning 2022–2025 used for training and historical analysis.
+> **After inner join on date:** 1,158 overlapping rows spanning Aug 2022 – Oct 2025 used for model training.
 
-**Key columns after cleaning:**
-
-| Feature | Source | Description |
-|---|---|---|
-| `temperature` | Weather | Mean daily temperature (°C) |
-| `humidity` | Weather | Relative humidity (%) |
-| `wind` | Weather | Wind speed (km/h) |
-| `pressure` | Weather | Mean sea-level pressure (hPa) |
-| `pm25` | Pollution | PM2.5 concentration (μg/m³) |
-| `pm10` | Pollution | PM10 concentration (μg/m³) |
-| `aqi` | Pollution | US AQI index |
-| `european_aqi` | Pollution | European AQI index |
-| `ozone` | Pollution | Ozone (μg/m³) |
-| `nitrogen_dioxide` | Pollution | NO₂ (μg/m³) |
+> **Why OpenWeatherMap Air Pollution (not WAQI):** The WAQI station network frequently returns NULL for pm10, no2, so2, co depending on which Cairo sensors are active. OWM uses the CAMS (Copernicus Atmosphere Monitoring Service) model which always returns all pollutants for any coordinate, making it suitable for production pipelines.
 
 ---
 
-## Engineered features
+## Engineered Features
 
-Five composite features are derived during `feature_engineering.py` to capture health-relevant interactions:
+`feature_engineering.py` derives 8 composite features after joining weather and pollution on `date`:
 
+**Original features (from daily means):**
 ```python
-heat_index        = temperature + (0.33 × humidity) - (0.70 × wind)
-pollution_level   = (pm25 × 0.5) + (pm10 × 0.3) + (aqi × 0.2)
-respiratory_stress= (pm25 × 0.4) + (ozone × 0.3) + (no2 × 0.2) + (so2 × 0.1)
-uv_risk           = clip((uv_index / 11) × 100, 0, 100)
-health_category   = classify_health(row)   # rule-based label → ML target
+heat_index         = temperature + (0.33 × humidity) - (0.70 × wind)
+pollution_level    = (pm25 × 0.5) + (pm10 × 0.3) + (aqi × 0.2)
+respiratory_stress = (pm25 × 0.4) + (ozone × 0.3) + (no2 × 0.2) + (so2 × 0.1)
+uv_risk            = clip((uv_index / 11) × 100, 0, 100)
 ```
+
+**v2 features (from daily max/min — capture peak-day conditions):**
+```python
+temp_range        = temp_max - temp_min          # diurnal swing; same mean but 20°C range ≠ stable day
+heat_stress_peak  = apparent_temp_max            # worst-case felt heat of the day
+dust_risk_index   = wind_max × (1 - humidity_min / 100)  # Cairo dust storm proxy
+rain_wash_effect  = clip(precipitation, 0, 20)   # rain reduces effective PM2.5
+```
+
+**Health classification (rule-based → ML training target):**
+
+| Category | Threshold | Days | % |
+|----------|-----------|------|---|
+| ✅ Safe Air Day | AQI ≤ 50, PM2.5 ≤ 12 | 112 | 9.7% |
+| ⚠️ Moderate Risk Day | AQI 50–90 | 694 | 59.9% |
+| 🟠 High Respiratory Risk Day | AQI 90–120 or dust_risk > 30 | 273 | 23.6% |
+| 😷 Mask Recommended Day | AQI 120–150 or heat_stress > 54 | 36 | 3.1% |
+| 🚫 Avoid Outdoor Activity Day | AQI > 150 or storm conditions | 43 | 3.7% |
+
+**Storm detection (Khamaseen / sandstorm override):**
+- Condition A: `wind_max > 40 km/h AND humidity_min < 20% AND dust_risk_index > 25`
+- Condition B: `raw dust > 200 μg/m³` — extreme dust loading regardless of wind
+- Condition C: `aerosol_optical_depth > 0.55 AND wind_max > 35` — satellite-confirmed aerosol event
+
+> **AOD calibration note:** Cairo data has `AOD max = 0.783`. Thresholds above 1.0 never trigger. The project uses 0.40 (High Respiratory) and 0.55 (storm) calibrated to 2 and 3.5 standard deviations above Cairo mean.
 
 ---
 
-## ML model
+## ML Model
 
-### Training
+### Configuration
 
-```
-Algorithm    Random Forest Classifier
-Estimators   200 trees
-Max depth    15
-Class weight balanced   (critical for Cairo's skewed distribution)
-Train split  80 / 20 stratified
-```
+| Parameter | Value | Reason |
+|-----------|-------|--------|
+| Algorithm | RandomForestClassifier | Handles non-linear feature interactions well |
+| n_estimators | 200 | Stable predictions, low variance |
+| max_depth | 15 | Prevents overfitting on minority classes |
+| class_weight | balanced | Compensates for imbalance (Moderate = 60%, Safe Air = 10%) |
+| Features | 17 | All 8 engineered + 9 raw (aqi, pm25, pm10, no2, ozone, pressure, wind, humidity, temperature) |
 
-### Performance
+### Performance (v2.1)
 
 | Metric | Score |
-|---|---|
-| Overall accuracy | **97%** |
-| Weighted F1 | **0.97** |
-| All-class precision | >90% |
-| All-class recall | >90% |
+|--------|-------|
+| Overall accuracy | **94%** |
+| Weighted F1 | **0.93** |
+| Rule vs ML agreement | **99.2%** (1,149/1,158 days) |
+| Model file | `ML/models/environmental_risk_model.pkl` |
 
-### Feature importance
+All 9 disagreements between rule-based labels and ML predictions are single-step shifts to adjacent categories — no dangerous cross-category misclassifications observed.
+
+### Feature Importance (top 5)
 
 | Rank | Feature | Importance |
-|---|---|---|
-| 1 | `aqi` | 31% |
-| 2 | `pm25` | 21% |
-| 3 | `pollution_level` | 14% |
-| 4 | `respiratory_stress` | 11% |
-| 5 | `heat_index` | 9% |
+|------|---------|------------|
+| 1 | `aqi` | 21.3% |
+| 2 | `pollution_level` | 16.1% |
+| 3 | `pm10` | 15.9% |
+| 4 | `pm25` | 12.9% |
+| 5 | `nitrogen_dioxide` | 6.7% |
 
-### Health categories
-
-The model classifies each day into one of five categories, calibrated specifically for Cairo's pollution baseline:
-
-| Category | Threshold | Days | Advice |
-|---|---|---|---|
-| 🟢 Safe Air Day | AQI ≤ 55, PM2.5 ≤ 14 | 52 (5%) | Enjoy outdoor activity |
-| 🟡 Moderate Risk Day | AQI ≤ 70, PM2.5 ≤ 20 | 353 (31%) | Sensitive groups take care |
-| 🟠 High Respiratory Risk Day | AQI ≤ 85, PM2.5 ≤ 30 | 556 (48%) | Limit prolonged outdoor exertion |
-| 🔴 Mask Recommended Day | AQI ≤ 110, PM2.5 ≤ 50 | 150 (13%) | Wear N95 outdoors |
-| ⛔ Avoid Outdoor Activity Day | AQI > 110, PM2.5 > 50 | 43 (4%) | Stay indoors |
-
-> **Note:** Thresholds are deliberately lower than WHO global guidelines because Cairo's baseline pollution is consistently elevated. A "safe" day in Cairo corresponds roughly to AQI 40–55, not the global threshold of 0–50.
-
----
-
-## Orchestration
-
-The full pipeline runs daily via **Prefect**, executing these tasks in sequence:
-
-```
-fetch_weather  →  fetch_pollution  →  feature_engineering  →  load_ssis  →  run_predictions
-```
-
-Each task is configured with `retries=2` and `retry_delay_seconds=10`. All steps write to `logs/pipeline.log`.
-
-```python
-# To trigger a manual run:
-python Automation/prefect_pipeline.py
-```
-
----
-
-## Database schema
-
-```
-AetherDW_V0
-├── DimDate                  # date dimension (date_id, year, month, quarter, is_weekend)
-├── WeatherMetrics           # raw daily weather (temperature, humidity, wind, pressure…)
-├── PollutionMetrics         # raw daily pollution (pm25, pm10, aqi, ozone, no2, so2…)
-├── EnvironmentalFeatures    # joined + engineered (main analytics table)
-└── RiskPredictions          # ML output (health_category, model_version, predicted_at)
-```
-
-Power BI connects directly to `EnvironmentalFeatures` and `RiskPredictions` joined through `DimDate`.
+> `feature_columns.pkl` is saved alongside the model so all inference scripts (predict_risk.py, predict_forecast.py, append_daily_api_row.py) automatically load the exact feature list used at training time — preventing silent drift if features are added in future.
 
 ---
 
 ## Dashboard
 
-The Power BI dashboard (`Dashboard/Aether_V0_Dashboard.pbix`) has two pages:
+<!-- ┌──────────────────────────────────────────────────────────────────────────┐
+     │  PLACEHOLDER — 5 dashboard screenshot montage                          │
+     │  Suggested file path: Images/dashboard_all_pages.png                   │
+     │  OR use 5 separate images: dashboard_p1.png through dashboard_p5.png   │
+     └──────────────────────────────────────────────────────────────────────────┘ -->
 
-**Page 1 — Environmental overview**
-- KPI cards: Total Days, Average AQI, Average Heat Index, Dangerous Days Rate, Latest Status
-- AQI + PM2.5 trend line chart (by month)
-- Heat Index trend by month
-- AQI distribution by month (column chart)
-- Health category breakdown (donut chart)
-- Temperature vs PM2.5 scatter (by health category)
-- Date range slicer
+<div align="center">
+<img src="Images/dashboard_overview.png" width="100%" alt="Aether Power BI Dashboard"/>
+</div>
 
-**Page 2 — Health intelligence**
-- Today's health status card
-- Monthly health category distribution (stacked bar)
-- Pollution level vs Respiratory Stress scatter
-- Prediction history table (sortable by date)
-- Month × Year AQI heatmap matrix
+<br/>
+
+The Power BI dashboard (`Dashboard/Aether_V0_Dashboard.pbix`) has **5 pages**, each serving a distinct analytical purpose:
+
+### Page 1 — Overview
+<!-- Screenshot: Images/dashboard_p1.png -->
+KPI cards (Total Days, Average AQI, Dangerous Days Rate, Latest Status), AQI gauge with WHO thresholds, AQI and PM2.5 trend lines, health category breakdown donut chart, and a date range slicer.
+
+### Page 2 — Pollution Status
+<!-- Screenshot: Images/dashboard_p2.png -->
+Deep-dive into individual pollutants: PM2.5 vs PM10 comparison, NO₂ and O₃ monthly trends, dust risk index over time, pollution level heat map by month × year, WHO exceedance tracker.
+
+### Page 3 — Health Intelligence
+<!-- Screenshot: Images/dashboard_p3.png -->
+Monthly health risk breakdown (stacked bar), respiratory stress vs AQI scatter coloured by category, ML prediction history table, match rate KPI (rule-based vs model agreement), risk distribution by season.
+
+### Page 4 — Historical Tracking
+<!-- Screenshot: Images/dashboard_p4.png -->
+Multi-year temperature trend, heat index vs apparent temperature, wind and humidity seasonal patterns, correlation matrix visual, period-over-period comparison for all key metrics.
+
+### Page 5 — Forecast
+<!-- Screenshot: Images/dashboard_p5.png -->
+3-day forecast cards (Day +1, +2, +3) with predicted category, AQI, PM2.5, and confidence score. Forecast confidence trend chart, forecast AQI vs actual AQI overlay, "Days Until Safe Air" measure.
+
+**Data model:** All four Gold tables connect through `DimDate`. `EnvironmentalFeatures` and `RiskPredictions` relate to `DimDate` via `date` column. `ForecastPredictions` relates via `forecast_date`. Direct EF ↔ RiskPredictions relationship is intentionally absent to avoid Many-to-Many ambiguity — cross-table lookups use `LOOKUPVALUE` in DAX.
 
 ---
 
-## Environment variables reference
+## Streamlit App
 
-```env
-OPENWEATHER_API_KEY   # OpenWeatherMap API key
-WAQI_TOKEN            # WAQI API token (station A527650)
-SQL_SERVER            # SQL Server named instance (e.g. DESKTOP-Q5KEU1E)
-SQL_DATABASE          # AetherDW_V0
-SQL_DRIVER            # ODBC Driver 17 for SQL Server
-PROJECT_ROOT          # Absolute path to Aether_V0 folder
-DTEXEC_PATH           # Path to dtexec.exe for SSIS execution
+<!-- ┌──────────────────────────────────────────────────────────────────────────┐
+     │  PLACEHOLDER — Streamlit app screenshot                                 │
+     │  Suggested file path: Images/streamlit_app.png                          │
+     └──────────────────────────────────────────────────────────────────────────┘ -->
+
+<div align="center">
+<img src="Images/streamlit_app.png" width="100%" alt="Aether Streamlit App"/>
+</div>
+
+The Streamlit app (`app.py`) provides a public-facing interface to the same Gold-layer data:
+
+| Page | Contents |
+|------|----------|
+| 🏠 Home | Latest AQI KPIs, AQI scale reference bar, today's health status banner, AQI trend chart |
+| 🌿 Environmental Overview | AQI & PM2.5 trends, temperature vs heat index, health category donut, monthly averages |
+| 🫁 Health Intelligence | Latest ML prediction card, prediction history table, respiratory stress scatter, monthly risk breakdown |
+| 🔮 Forecasts | 3-day forecast cards (D+1, D+2, D+3), confidence chart, forecast AQI trend, full forecast log |
+
+**Technical notes:**
+- `@st.cache_data(ttl=1800)` on all database calls — prevents re-querying Azure on every widget interaction
+- Auto-refresh every 30 minutes via `streamlit-autorefresh`
+- Forecast cards query uses `ROW_NUMBER() OVER (PARTITION BY forecast_date, forecast_horizon ORDER BY generated_at DESC)` to show only the most recent prediction per date, avoiding duplicate stale forecasts
+- Graceful wake-up screen for Azure free tier cold starts
+
+---
+
+## Azure Deployment
+
+The Gold schema tables are mirrored to Azure SQL Database for cloud access by the Streamlit app:
+
+```bash
+# Full migration (Bronze + Silver + Gold)
+python Database/migrate_to_azure.py
+
+# Migrate specific tables only
+python Database/migrate_to_azure.py --tables EnvironmentalFeatures ForecastPredictions
+
+# Dry run (preview without writing)
+python Database/migrate_to_azure.py --dry-run
+
+# Verify row counts local vs Azure
+python Database/migrate_to_azure.py --verify-only
+```
+
+Migration script features: retry logic with exponential backoff for Azure throttling, proper date/datetime type preservation, progress bar per table, automatic row count verification, full log saved to `logs/migration_YYYYMMDD_HHMMSS.log`.
+
+**Streamlit secrets** (`.streamlit/secrets.toml`):
+```toml
+[database]
+SERVER   = "your-server.database.windows.net"
+DATABASE = "AetherDW_V0"
+USERNAME = "your_username"
+PASSWORD = "your_password"
 ```
 
 ---
 
-## Tech stack
+## Technologies
 
-| Layer | Technology |
-|---|---|
-| Language | Python 3.11 |
-| ETL / transformation | pandas, numpy |
-| Machine learning | scikit-learn (RandomForestClassifier) |
-| Database | SQL Server 2019, pyodbc |
-| SSIS | SQL Server Integration Services 2022 |
-| Orchestration | Prefect 2 |
-| Dashboard | Power BI Desktop |
-| Logging | Python `logging` + custom utils/logger.py |
-| Environment | python-dotenv |
+<!-- ┌──────────────────────────────────────────────────────────────────────────┐
+     │  PLACEHOLDER — technology stack visual / badge grid                     │
+     │  Suggested file path: Images/tech_stack.png                             │
+     └──────────────────────────────────────────────────────────────────────────┘ -->
+
+<div align="center">
+<img src="Images/tech_stack.png" width="80%" alt="Aether Technology Stack"/>
+</div>
+
+| Layer | Technology | Notes |
+|-------|-----------|-------|
+| Language | Python 3.11 | Core pipeline, ML, web app |
+| ETL / Transformation | pandas, numpy | Cleaning, feature engineering |
+| Machine Learning | scikit-learn | RandomForestClassifier |
+| Database — Local | SQL Server 2019 | Developer Edition, Medallion schema |
+| Database — Cloud | Azure SQL Database | Mirrors Gold schema for Streamlit |
+| Loading | pyodbc + SQLAlchemy | Replaces SSIS for production automation |
+| SSIS | SQL Server Integration Services 2022 | Portfolio / manual use in SSDT |
+| Orchestration | Prefect 2 | 9-task daily flow, 2 branches |
+| Scheduling | Windows Task Scheduler | Daily 07:00, runs on machine startup if missed |
+| Web App | Streamlit | 4 pages, hosted on Streamlit Community Cloud |
+| Dashboard | Power BI Desktop | 5 pages, DAX measures, direct Azure SQL connection |
+| APIs | OpenWeatherMap + Open-Meteo | Weather, pollution, 3-day forecast |
+| Environment | python-dotenv | `.env` for local, `secrets.toml` for Streamlit Cloud |
+| Logging | Python logging | Structured logs to `logs/pipeline.log` |
+
+---
+
+## Environment Variables Reference
+
+```env
+# ── Live APIs ─────────────────────────────────────────────────────────
+OPENWEATHER_API_KEY=           # OpenWeatherMap (weather + pollution + forecast)
+
+# ── Local SQL Server ──────────────────────────────────────────────────
+SQL_SERVER=DESKTOP-XXXXXXX     # Named instance
+SQL_DATABASE=AetherDW_V0
+SQL_DRIVER=ODBC Driver 17 for SQL Server
+PROJECT_ROOT=D:\Aether\Aether_V0
+
+# ── Azure SQL Database ────────────────────────────────────────────────
+AZURE_SQL_SERVER=your-server.database.windows.net
+AZURE_SQL_DATABASE=AetherDW_V0
+AZURE_SQL_USER=your_username
+AZURE_SQL_PASSWORD=your_password
+AZURE_SQL_DRIVER=ODBC Driver 17 for SQL Server
+```
 
 ---
 
@@ -375,13 +521,10 @@ DTEXEC_PATH           # Path to dtexec.exe for SSIS execution
 Contributions are welcome. Please open an issue first to discuss any significant change.
 
 ```bash
-# Fork → branch → commit → pull request
 git checkout -b feature/your-feature-name
 git commit -m "feat: describe your change"
 git push origin feature/your-feature-name
 ```
-
-Code style: `black` + `flake8`. Run `pre-commit install` after cloning.
 
 ---
 
@@ -392,5 +535,5 @@ MIT — see [LICENSE](LICENSE) for details.
 ---
 
 <div align="center">
-<sub>Built for Cairo · Data Engineering + Machine Learning · 2025</sub>
+<sub>Built for Cairo · Data Engineering + Machine Learning + Cloud Deployment · 2025–2026</sub>
 </div>
