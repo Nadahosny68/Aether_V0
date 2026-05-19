@@ -105,7 +105,7 @@ Fully engineered features ready for ML inference and Power BI consumption:
      └──────────────────────────────────────────────────────────────────┘ -->
 
 <div align="center">
-<img src="Images/Data_Architicture.png" width="100%" alt="Aether ETL Pipeline"/>
+<img src="Images/Diagram2.png" width="100%" alt="Aether ETL Pipeline"/>
 </div>
 
 <br/>
