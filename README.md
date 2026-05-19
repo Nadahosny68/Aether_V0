@@ -374,7 +374,7 @@ All 9 disagreements between rule-based labels and ML predictions are single-step
      └──────────────────────────────────────────────────────────────────────────┘ -->
 
 <div align="center">
-<img src="Images/dashboard_overview.png" width="100%" alt="Aether Power BI Dashboard"/>
+<img src="Images/Dashboards/Sementic Model.png" width="100%" alt="Aether Power BI Dashboard"/>
 </div>
 
 <br/>
@@ -385,21 +385,41 @@ The Power BI dashboard (`Dashboard/Aether_V0_Dashboard.pbix`) has **5 pages**, e
 <!-- Screenshot: Images/dashboard_p1.png -->
 KPI cards (Total Days, Average AQI, Dangerous Days Rate, Latest Status), AQI gauge with WHO thresholds, AQI and PM2.5 trend lines, health category breakdown donut chart, and a date range slicer.
 
+<div align="center">
+<img src="Images/Dashboards/Overview.png" width="50%" alt="Aether Power BI Dashboard"/>
+</div>
+
 ### Page 2 — Pollution Status
 <!-- Screenshot: Images/dashboard_p2.png -->
 Deep-dive into individual pollutants: PM2.5 vs PM10 comparison, NO₂ and O₃ monthly trends, dust risk index over time, pollution level heat map by month × year, WHO exceedance tracker.
+
+<div align="center">
+<img src="Images/Dashboards/Pollution status.png" width="50%" alt="Aether Power BI Dashboard"/>
+</div>
 
 ### Page 3 — Health Intelligence
 <!-- Screenshot: Images/dashboard_p3.png -->
 Monthly health risk breakdown (stacked bar), respiratory stress vs AQI scatter coloured by category, ML prediction history table, match rate KPI (rule-based vs model agreement), risk distribution by season.
 
+<div align="center">
+<img src="Images/Dashboards/Health Intelligence.png" width="50%" alt="Aether Power BI Dashboard"/>
+</div>
+
 ### Page 4 — Historical Tracking
 <!-- Screenshot: Images/dashboard_p4.png -->
 Multi-year temperature trend, heat index vs apparent temperature, wind and humidity seasonal patterns, correlation matrix visual, period-over-period comparison for all key metrics.
 
+<div align="center">
+<img src="Images/Dashboards/Historical tracking.png" width="50%" alt="Aether Power BI Dashboard"/>
+</div>
+
 ### Page 5 — Forecast
 <!-- Screenshot: Images/dashboard_p5.png -->
 3-day forecast cards (Day +1, +2, +3) with predicted category, AQI, PM2.5, and confidence score. Forecast confidence trend chart, forecast AQI vs actual AQI overlay, "Days Until Safe Air" measure.
+
+<div align="center">
+<img src="Images/Dashboards/Forecast.png" width="50%" alt="Aether Power BI Dashboard"/>
+</div>
 
 **Data model:** All four Gold tables connect through `DimDate`. `EnvironmentalFeatures` and `RiskPredictions` relate to `DimDate` via `date` column. `ForecastPredictions` relates via `forecast_date`. Direct EF ↔ RiskPredictions relationship is intentionally absent to avoid Many-to-Many ambiguity — cross-table lookups use `LOOKUPVALUE` in DAX.
 
