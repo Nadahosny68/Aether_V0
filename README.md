@@ -1,7 +1,7 @@
 <div align="center">
 
 <!-- Replace with your actual banner image -->
-<img src="Images/aether_banner.svg" width="100%" alt="Aether Environmental Monitoring Platform"/>
+<img src="Images/banner2.png" width="100%" alt="Aether Environmental Monitoring Platform"/>
 
 <br/>
 <br/>
@@ -70,7 +70,7 @@ Aether is a production-grade environmental health intelligence platform for Cair
      └──────────────────────────────────────────────────────────────────┘ -->
 
 <div align="center">
-<img src="Images/aether_data_flow.svg" width="100%" alt="Aether Data Flow Architecture"/>
+<img src="Images/Data Flow2.png" width="100%" alt="Aether Data Flow Architecture"/>
 </div>
 
 <br/>
@@ -105,7 +105,7 @@ Fully engineered features ready for ML inference and Power BI consumption:
      └──────────────────────────────────────────────────────────────────┘ -->
 
 <div align="center">
-<img src="Images/aether_etl_pipeline.svg" width="100%" alt="Aether ETL Pipeline"/>
+<img src="Images/Data_Architicture.png" width="100%" alt="Aether ETL Pipeline"/>
 </div>
 
 <br/>
@@ -472,7 +472,7 @@ PASSWORD = "your_password"
      └──────────────────────────────────────────────────────────────────────────┘ -->
 
 <div align="center">
-<img src="Images/tech_stack.png" width="80%" alt="Aether Technology Stack"/>
+<img src="Images/techniques2.png" width="80%" alt="Aether Technology Stack"/>
 </div>
 
 | Layer | Technology | Notes |
