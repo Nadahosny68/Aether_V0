@@ -433,7 +433,9 @@ Multi-year temperature trend, heat index vs apparent temperature, wind and humid
      └──────────────────────────────────────────────────────────────────────────┘ -->
 
 <div align="center">
-<img src="Images/streamlit_app.png" width="100%" alt="Aether Streamlit App"/>
+<img src="Images/streamlit/Screenshot 2026-05-19 171455.png" width="50%" alt="Aether Streamlit App"/>
+  <img src="Images/streamlit/Screenshot 2026-05-19 171708.png" width="50%" alt="Aether Streamlit App"/>
+
 </div>
 
 The Streamlit app (`app.py`) provides a public-facing interface to the same Gold-layer data:
