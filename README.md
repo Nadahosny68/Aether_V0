@@ -383,7 +383,7 @@ The Power BI dashboard (`Dashboard/Aether_V0_Dashboard.pbix`) has **5 pages**, e
 
 ### Page 1 — Overview
 <!-- Screenshot: Images/dashboard_p1.png -->
-KPI cards (Total Days, Average AQI, Dangerous Days Rate, Latest Status), AQI gauge with WHO thresholds, AQI and PM2.5 trend lines, health category breakdown donut chart, and a date range slicer.
+Data → Insight → Action
 
 <div align="center">
 <img src="Images/Dashboards/Overview.png" width="50%" alt="Aether Power BI Dashboard"/>
@@ -391,7 +391,7 @@ KPI cards (Total Days, Average AQI, Dangerous Days Rate, Latest Status), AQI gau
 
 ### Page 2 — Pollution Status
 <!-- Screenshot: Images/dashboard_p2.png -->
-Deep-dive into individual pollutants: PM2.5 vs PM10 comparison, NO₂ and O₃ monthly trends, dust risk index over time, pollution level heat map by month × year, WHO exceedance tracker.
+What is the current environmental pollution condition in Cairo, and how does it affect health risk levels?
 
 <div align="center">
 <img src="Images/Dashboards/Pollution status.png" width="50%" alt="Aether Power BI Dashboard"/>
@@ -399,7 +399,7 @@ Deep-dive into individual pollutants: PM2.5 vs PM10 comparison, NO₂ and O₃ m
 
 ### Page 3 — Health Intelligence
 <!-- Screenshot: Images/dashboard_p3.png -->
-Monthly health risk breakdown (stacked bar), respiratory stress vs AQI scatter coloured by category, ML prediction history table, match rate KPI (rule-based vs model agreement), risk distribution by season.
+What environmental conditions are driving respiratory health risk?
 
 <div align="center">
 <img src="Images/Dashboards/Health Intelligence.png" width="50%" alt="Aether Power BI Dashboard"/>
@@ -407,7 +407,7 @@ Monthly health risk breakdown (stacked bar), respiratory stress vs AQI scatter c
 
 ### Page 4 — Historical Tracking
 <!-- Screenshot: Images/dashboard_p4.png -->
-Multi-year temperature trend, heat index vs apparent temperature, wind and humidity seasonal patterns, correlation matrix visual, period-over-period comparison for all key metrics.
+How did environmental health conditions evolve historically over time?
 
 <div align="center">
 <img src="Images/Dashboards/Historical tracking.png" width="50%" alt="Aether Power BI Dashboard"/>
@@ -415,7 +415,7 @@ Multi-year temperature trend, heat index vs apparent temperature, wind and humid
 
 ### Page 5 — Forecast
 <!-- Screenshot: Images/dashboard_p5.png -->
-3-day forecast cards (Day +1, +2, +3) with predicted category, AQI, PM2.5, and confidence score. Forecast confidence trend chart, forecast AQI vs actual AQI overlay, "Days Until Safe Air" measure.
+What environmental conditions are expected in the coming days, and how should users react proactively?
 
 <div align="center">
 <img src="Images/Dashboards/Forecast.png" width="50%" alt="Aether Power BI Dashboard"/>
