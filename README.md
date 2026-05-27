@@ -433,8 +433,11 @@ Multi-year temperature trend, heat index vs apparent temperature, wind and humid
      └──────────────────────────────────────────────────────────────────────────┘ -->
 
 <div align="center">
-<img src="Images/streamlit/Screenshot 2026-05-19 171455.png" width="50%" alt="Aether Streamlit App"/>
-  <img src="Images/streamlit/Screenshot 2026-05-19 171708.png" width="50%" alt="Aether Streamlit App"/>
+<img src="Images/streamlit/overview.png" width="50%" alt="Aether Streamlit App"/>
+      <img src="Images/streamlit/Environmental Overview.png" width="50%" alt="Aether Streamlit App"/>
+      <img src="Images/streamlit/Health intelligence.png" width="50%" alt="Aether Streamlit App"/>
+      <img src="Images/streamlit/Forecast.png" width="50%" alt="Aether Streamlit App"/>
+
 
 </div>
 
