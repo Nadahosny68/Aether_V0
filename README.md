@@ -27,20 +27,6 @@
 
 ---
 
-## 🌍 Live Application
-
-<div align="center">
-
-### 🔗 [aether-cairo.streamlit.app](https://aether-cairo.streamlit.app)
-
-*Hosted on Streamlit Community Cloud · Backed by Azure SQL Database*
-
-</div>
-
-> **First visit note:** Azure SQL free tier pauses after 60 minutes of inactivity. If the app shows a loading message, wait 30 seconds and click **Refresh Data** in the sidebar. Subsequent loads are instant.
-
----
-
 ## Overview
 
 Aether is a production-grade environmental health intelligence platform for Cairo, Egypt. It ingests real-time weather and air quality data from live APIs, processes it through an automated daily ETL pipeline, and applies a trained Random Forest classifier to classify each day into one of five health risk categories — delivering actionable guidance through both a live Streamlit web application and a Power BI dashboard.
@@ -427,6 +413,19 @@ What environmental conditions are expected in the coming days, and how should us
 
 ## Streamlit App
 
+## 🌍 Live Application
+
+<div align="center">
+
+### 🔗 [aether-cairo.streamlit.app](https://aether-cairo.streamlit.app)
+
+*Hosted on Streamlit Community Cloud · Backed by Azure SQL Database*
+
+</div>
+
+> **First visit note:** Azure SQL free tier pauses after 60 minutes of inactivity. If the app shows a loading message, wait 30 seconds and click **Refresh Data** in the sidebar. Subsequent loads are instant.
+
+---
 <!-- ┌──────────────────────────────────────────────────────────────────────────┐
      │  PLACEHOLDER — Streamlit app screenshot                                 │
      │  Suggested file path: Images/streamlit_app.png                          │
